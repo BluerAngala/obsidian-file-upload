@@ -365,6 +365,96 @@ const en = {
             name: "Language",
             desc: "Select the display language for the plugin settings.",
         },
+        cdn: {
+            heading: "CDN acceleration",
+            desc: "Pick a CDN for faster image access. Domestic CDNs work best in mainland China; foreign CDNs are recommended for users elsewhere.",
+            select: {
+                name: "CDN",
+                desc: "Apply a CDN rewrite to every uploaded image URL.",
+            },
+            options: {
+                none: "None (provider default URL)",
+                custom: "Custom domain",
+            },
+            customDomain: {
+                name: "Custom CDN domain",
+                desc: "Used when CDN is set to \"Custom domain\". Enter a host (e.g. cdn.example.com) — the protocol defaults to https.",
+                placeholder: "cdn.example.com",
+            },
+        },
+        features: {
+            renameRules: {
+                heading: "Rename rules",
+                enabled: {
+                    name: "Enable custom filename template",
+                    desc: "Apply a path template and sanitization rules to uploaded filenames.",
+                },
+                template: {
+                    name: "Filename template",
+                    desc: "Template for the upload path. Supports {year} {mon} {day} {random} {filename} variables. Example: uploads/{year}/{mon}/{filename}",
+                    placeholder: "uploads/{year}/{mon}/{filename}",
+                },
+                spacesToDashes: {
+                    name: "Convert spaces to dashes",
+                },
+                lowercase: {
+                    name: "Lowercase filenames",
+                },
+            },
+            compression: {
+                heading: "Image compression",
+                enabled: {
+                    name: "Enable compression",
+                    desc: "Resize and re-encode images before upload to save bandwidth and storage.",
+                },
+                maxWidth: {
+                    name: "Max width (px)",
+                    desc: "Downscale images wider than this value. 0 disables resizing.",
+                },
+                quality: {
+                    name: "Quality",
+                    desc: "Output JPEG/WebP quality (0.1 – 1.0). Lower = smaller files.",
+                },
+                format: {
+                    name: "Output format",
+                    desc: "Convert to this format on upload. \"Keep\" preserves the original.",
+                    options: {
+                        keep: "Keep original",
+                    },
+                },
+            },
+            skipRules: {
+                heading: "Skip rules",
+                urlRegex: {
+                    name: "Skip URLs matching regex",
+                    desc: "If a web image URL matches this regex, the upload is skipped (left as the original URL).",
+                    placeholder: "^https://(cdn\\.jsdelivr\\.net|raw\\.githubusercontent\\.com)/",
+                },
+                pathRegex: {
+                    name: "Skip local paths matching regex",
+                    desc: "If a local file path matches this regex, the upload is skipped.",
+                    placeholder: "^templates/",
+                },
+                maxSize: {
+                    name: "Skip files larger than (MB)",
+                    desc: "Files larger than this size are left untouched. 0 disables the size filter.",
+                },
+            },
+            concurrency: {
+                heading: "Upload concurrency",
+                upload: {
+                    name: "Concurrent uploads",
+                    desc: "How many images to upload in parallel (1–16). Higher values may hit provider rate limits.",
+                },
+            },
+            exif: {
+                heading: "EXIF stripping",
+                enabled: {
+                    name: "Strip EXIF metadata on upload",
+                    desc: "Removes GPS coordinates, camera info, and other EXIF tags before upload.",
+                },
+            },
+        },
     },
 
     // Progress modal

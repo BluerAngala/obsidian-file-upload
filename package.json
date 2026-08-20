@@ -1,6 +1,6 @@
 {
   "name": "obsidian-file-upload",
-  "version": "1.6.7",
+  "version": "1.6.8",
   "description": "Upload local images to cloud storage with multi-language support",
   "author": "BluerAngala",
   "main": "main.js",

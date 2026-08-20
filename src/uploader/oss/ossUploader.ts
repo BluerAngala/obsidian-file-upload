@@ -2,6 +2,8 @@ import {requestUrl} from "obsidian";
 import {createHash, createHmac} from "crypto";
 import ImageUploader from "../imageUploader";
 import {UploaderUtils} from "../uploaderUtils";
+import {applyCdn, encodePathSegments} from "../cdn";
+import type {CdnId} from "../cdn";
 
 const EXTENSION_MIME_MAP: Record<string, string> = {
     jpg: "image/jpeg",
@@ -16,6 +18,7 @@ const EXTENSION_MIME_MAP: Record<string, string> = {
 export default class OssUploader implements ImageUploader {
     private readonly pathTmpl: string;
     private readonly customDomainName: string;
+    private readonly cdnId: CdnId;
     private readonly region: string;
     private readonly bucket: string;
     private readonly accessKeyId: string;
@@ -28,6 +31,7 @@ export default class OssUploader implements ImageUploader {
         this.accessKeySecret = setting.accessKeySecret;
         this.pathTmpl = setting.path;
         this.customDomainName = setting.customDomainName;
+        this.cdnId = setting.cdnId || "oss-native";
     }
 
     supportsFileType(_extension: string): boolean {
@@ -50,7 +54,7 @@ export default class OssUploader implements ImageUploader {
         ].join("\n");
         const signature = createHmac("sha1", this.accessKeySecret).update(stringToSign).digest("base64");
 
-        const url = `https://${this.bucket}.${this.region}.aliyuncs.com/${encodeURI(key)}`;
+        const url = `https://${this.bucket}.${this.region}.aliyuncs.com/${encodePathSegments(key)}`;
         const response = await requestUrl({
             url,
             method: "PUT",
@@ -68,7 +72,10 @@ export default class OssUploader implements ImageUploader {
             throw new Error(`Aliyun OSS upload failed (${response.status}): ${response.text || "no response body"}`);
         }
 
-        return UploaderUtils.customizeDomainName(url, this.customDomainName);
+        return applyCdn("ALIYUN_OSS", url, this.cdnId, {
+            bucket: this.bucket,
+            customDomain: this.customDomainName,
+        });
     }
 
     private resolveContentType(image: File): string {
@@ -88,4 +95,5 @@ export interface OssSetting {
     endpoint: string;
     path: string;
     customDomainName: string;
+    cdnId?: string;
 }

@@ -355,6 +355,96 @@ const zhTw: typeof en = {
             name: "語言",
             desc: "選擇外掛程式設定介面的顯示語言。",
         },
+        cdn: {
+            heading: "CDN 加速",
+            desc: "選擇一個 CDN 以加速圖片存取。國內 CDN 適合中國大陸使用者，海外 CDN 適合其他地區使用者。",
+            select: {
+                name: "CDN",
+                desc: "對所有上傳後的圖片 URL 套用 CDN 改寫。",
+            },
+            options: {
+                none: "不使用（使用圖床預設 URL）",
+                custom: "自訂網域",
+            },
+            customDomain: {
+                name: "自訂 CDN 網域",
+                desc: "當 CDN 選擇「自訂網域」時使用。填寫主機名稱（如 cdn.example.com），通訊協定預設為 https。",
+                placeholder: "cdn.example.com",
+            },
+        },
+        features: {
+            renameRules: {
+                heading: "重新命名規則",
+                enabled: {
+                    name: "啟用自訂檔案命名範本",
+                    desc: "對上傳的檔案名稱套用路徑範本和清理規則。",
+                },
+                template: {
+                    name: "檔案命名範本",
+                    desc: "上傳路徑的範本。支援 {year} {mon} {day} {random} {filename} 變數。例如 uploads/{year}/{mon}/{filename}",
+                    placeholder: "uploads/{year}/{mon}/{filename}",
+                },
+                spacesToDashes: {
+                    name: "將空格轉換為短橫線",
+                },
+                lowercase: {
+                    name: "檔案名稱轉小寫",
+                },
+            },
+            compression: {
+                heading: "圖片壓縮",
+                enabled: {
+                    name: "啟用壓縮",
+                    desc: "在上傳前調整尺寸和重新編碼圖片，以節省流量和儲存空間。",
+                },
+                maxWidth: {
+                    name: "最大寬度 (px)",
+                    desc: "寬度超過此值的圖片會被縮放。0 表示不縮放。",
+                },
+                quality: {
+                    name: "品質",
+                    desc: "JPEG/WebP 輸出品質（0.1 – 1.0）。值越小檔案越小。",
+                },
+                format: {
+                    name: "輸出格式",
+                    desc: "上傳時轉換為該格式。「保持原格式」不做轉換。",
+                    options: {
+                        keep: "保持原格式",
+                    },
+                },
+            },
+            skipRules: {
+                heading: "略過規則",
+                urlRegex: {
+                    name: "略過符合此正規表示式的 URL",
+                    desc: "若網路圖片的 URL 符合此正規表示式，則略過上傳（保留原 URL）。",
+                    placeholder: "^https://(cdn\\.jsdelivr\\.net|raw\\.githubusercontent\\.com)/",
+                },
+                pathRegex: {
+                    name: "略過符合此正規表示式的本機路徑",
+                    desc: "若本機檔案路徑符合此正規表示式，則略過上傳。",
+                    placeholder: "^templates/",
+                },
+                maxSize: {
+                    name: "略過大於此大小的檔案 (MB)",
+                    desc: "大於此大小的檔案保持不動。0 表示停用大小過濾。",
+                },
+            },
+            concurrency: {
+                heading: "上傳並行數",
+                upload: {
+                    name: "並行上傳數",
+                    desc: "並行上傳的圖片數量（1–16）。較高的值可能觸發圖床的速率限制。",
+                },
+            },
+            exif: {
+                heading: "EXIF 資訊清除",
+                enabled: {
+                    name: "上傳時清除 EXIF 中繼資料",
+                    desc: "在上傳前移除 GPS 座標、相機資訊等 EXIF 標籤。",
+                },
+            },
+        },
     },
 
     progressModal: {

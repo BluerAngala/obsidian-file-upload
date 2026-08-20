@@ -48,7 +48,7 @@ export default class KodoUploader implements ImageUploader {
 
         const data = response.json as {key?: string};
         const returnedKey = data?.key ?? key;
-        return UploaderUtils.customizeDomainName(`${this.setting.customDomainName}/${returnedKey}`, "");
+        return `${this.setting.customDomainName}/${returnedKey}`;
     }
 
     updateToken(): void {
@@ -105,4 +105,5 @@ export interface KodoSetting {
     bucket: string;
     customDomainName: string;
     path: string;
+    cdnId?: string;
 }

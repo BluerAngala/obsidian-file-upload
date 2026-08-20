@@ -1,6 +1,8 @@
 import ImageUploader from "../imageUploader";
 import {PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
 import {UploaderUtils} from "../uploaderUtils";
+import {applyCdn, encodePathSegments} from "../cdn";
+import type {CdnId} from "../cdn";
 
 export default class AwsS3Uploader implements ImageUploader {
   private readonly s3!: S3Client;
@@ -8,6 +10,7 @@ export default class AwsS3Uploader implements ImageUploader {
   private readonly region: string;
   private pathTmpl: string;
   private customDomainName: string;
+  private readonly cdnId: CdnId;
 
 
   constructor(setting: AwsS3Setting) {
@@ -23,6 +26,7 @@ export default class AwsS3Uploader implements ImageUploader {
     this.region = region;
     this.pathTmpl = setting.path;
     this.customDomainName = setting.customDomainName;
+    this.cdnId = setting.cdnId || "s3-native";
   }
 
   supportsFileType(_extension: string): boolean {
@@ -39,8 +43,10 @@ export default class AwsS3Uploader implements ImageUploader {
       Key: path,
       Body: uint8Array,
     }));
-    const location = `https://${this.bucket}.s3.${this.region}.amazonaws.com/${path}`;
-    return UploaderUtils.customizeDomainName(location, this.customDomainName);
+    const location = `https://${this.bucket}.s3.${this.region}.amazonaws.com/${encodePathSegments(path)}`;
+    return applyCdn("AWS_S3", location, this.cdnId, {
+      customDomain: this.customDomainName,
+    });
   }
 }
 export interface AwsS3Setting {
@@ -50,4 +56,5 @@ export interface AwsS3Setting {
   bucketName: string;
   path: string;
   customDomainName: string;
+  cdnId?: string;
 }

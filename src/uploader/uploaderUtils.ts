@@ -1,3 +1,6 @@
+import {applyCdn, encodePathSegments, swapHost} from "./cdn";
+import type {CdnId} from "./cdn";
+
 export class UploaderUtils {
     static generateName(pathTmpl: string | undefined, imageName: string): string {
         const date = new Date();
@@ -28,29 +31,68 @@ export class UploaderUtils {
         return result;
     }
 
+    /**
+     * @deprecated Use `applyCdn()` from `./cdn` for new code.
+     *
+     * Legacy: rewrite the host of `url` to `customDomainName`, with two
+     * legacy behaviors preserved for backward compatibility with the
+     * previous implementation:
+     *   1. Strips BOTH `https://` and `http://` prefixes from the
+     *      custom domain (original only handled https, producing
+     *      `https://http://...`).
+     *   2. If `url` has no scheme/host (a "key-like" path), wraps it as
+     *      `https://{customDomain}/{encoded-path}` — used by some
+     *      uploaders that return just a storage key.
+     *   3. Re-encodes the path so Chinese filenames and spaces survive
+     *      the host swap.
+     *   4. Preserves the user's trailing-slash intent on the custom
+     *      domain (callers that pass `cdn.example.com/` get a
+     *      double-slash in the result — matches the old behavior).
+     */
     static customizeDomainName(url: string, customDomainName: string): string {
-        const regex = /https?:\/\/([^/]+)/;
-        customDomainName = customDomainName.replaceAll('https://', '')
-        if (customDomainName && customDomainName.trim() !== "") {
-            if (url.match(regex) != null) {
-                return url.replace(regex, (match, domain: string) => {
-                    return match.replace(domain, customDomainName);
-                })
-            } else {
-                return `https://${customDomainName}/${this.encodePath(url)}`;
-            }
+        if (!customDomainName || !customDomainName.trim()) {
+            return url;
         }
-        return url;
+        const cleaned = customDomainName.replace(/^https?:\/\//i, "");
+        // Preserve trailing slash if the user typed one (legacy behavior)
+        const trailingSlash = cleaned.endsWith("/") ? "/" : "";
+        const host = cleaned.replace(/\/+$/, "");
+        if (!host) return url;
+
+        const hasScheme = /^https?:\/\//i.test(url);
+        if (!hasScheme) {
+            // Key-like input — wrap as a full URL (preserves trailing slash)
+            return `https://${host}/${encodePathSegments(url)}${trailingSlash}`;
+        }
+        return swapHost(this.reEncodeUrl(url), host) + trailingSlash;
     }
 
-    private static encodePath(path: string): string {
-        return path.split('/').map((segment) => {
-            try {
-                return encodeURIComponent(decodeURIComponent(segment));
-            } catch {
-                return encodeURIComponent(segment);
-            }
-        }).join('/');
+    /**
+     * Apply the configured CDN (or custom domain fallback) to a provider
+     * storage URL. New code should call this instead of `customizeDomainName`.
+     */
+    static applyCdn(
+        providerId: string,
+        storageUrl: string,
+        cdnId: CdnId,
+        customDomain: string,
+    ): string {
+        return applyCdn(providerId, storageUrl, cdnId, {customDomain});
+    }
+
+    /**
+     * Re-encode a URL's path so it survives host swaps. Splits the URL
+     * at scheme/host/path boundaries, then percent-encodes each path
+     * segment without double-encoding characters that are already valid.
+     */
+    private static reEncodeUrl(url: string): string {
+        try {
+            const u = new URL(url);
+            u.pathname = encodePathSegments(decodeURI(u.pathname));
+            return u.toString();
+        } catch {
+            return url;
+        }
     }
 
     /**

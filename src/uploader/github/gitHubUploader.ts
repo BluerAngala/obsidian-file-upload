@@ -1,5 +1,6 @@
 import ImageUploader from "../imageUploader";
 import { Octokit } from "@octokit/rest";
+import {applyCdn, encodePathSegments} from "../cdn";
 
 export default class GitHubUploader implements ImageUploader {
   private readonly octokit: Octokit;
@@ -7,6 +8,8 @@ export default class GitHubUploader implements ImageUploader {
   private readonly repo: string;
   private readonly branch: string;
   private readonly path: string;
+  private readonly cdnId: string;
+  private readonly customDomain: string;
   private uploadQueue: Promise<void> = Promise.resolve();
 
   constructor(setting: GitHubSetting) {
@@ -20,6 +23,8 @@ export default class GitHubUploader implements ImageUploader {
     this.repo = setting.repositoryName;
     this.branch = setting.branchName || 'main';
     this.path = setting.path;
+    this.cdnId = setting.cdnId || "github-raw";
+    this.customDomain = setting.customDomain || "";
   }
 
   supportsFileType(_extension: string): boolean {
@@ -41,9 +46,14 @@ export default class GitHubUploader implements ImageUploader {
     try {
       const arrayBuffer = await this.readFileAsArrayBuffer(image);
       const base64Content = this.arrayBufferToBase64(arrayBuffer);
-      
-      const filePath = image.name.replace(/^\/+/, ''); // Remove leading slashes
-      
+
+      const baseName = image.name.replace(/^\/+/, ''); // Remove leading slashes
+      // Prepend the configured upload path (e.g. "images/2026"), stripping
+      // any leading/trailing slashes so the result is always exactly
+      // "{prefix}/{filename}" — no stray double slashes.
+      const prefix = this.path.replace(/^\/+|\/+$/g, "");
+      const filePath = prefix ? `${prefix}/${baseName}` : baseName;
+
       // Get the SHA of the file if it exists (needed for updating)
       let fileSha: string | undefined;
       try {
@@ -53,14 +63,14 @@ export default class GitHubUploader implements ImageUploader {
           path: filePath,
           ref: this.branch
         });
-        
+
         if (!Array.isArray(data)) {
           fileSha = data.sha;
         }
       } catch {
         // File doesn't exist yet, which is fine
       }
-      
+
       // Create or update the file in the repository
       await this.octokit.repos.createOrUpdateFileContents({
         owner: this.owner,
@@ -71,10 +81,21 @@ export default class GitHubUploader implements ImageUploader {
         branch: this.branch,
         sha: fileSha
       });
-      
-      // Return the URL to the uploaded image
-      // Format: https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}
-      return `https://raw.githubusercontent.com/${this.owner}/${this.repo}/${this.branch}/${filePath}`;
+
+      // Build the canonical storage URL with each path segment properly
+      // encoded so Chinese filenames and spaces do not break CDN access.
+      const encodedPath = encodePathSegments(filePath);
+      const storageUrl = `https://raw.githubusercontent.com/${this.owner}/${this.repo}/${this.branch}/${encodedPath}`;
+
+      // Apply the user-selected CDN (jsdelivr / Statically / gh-proxy / etc.)
+      // or fall back to the raw URL.
+      return applyCdn("GITHUB", storageUrl, this.cdnId, {
+        githubOwner: this.owner,
+        githubRepo: this.repo,
+        githubBranch: this.branch,
+        githubPath: filePath,
+        customDomain: this.customDomain,
+      });
     } catch (error) {
       console.error("Error uploading to GitHub:", error);
       throw error;
@@ -146,4 +167,8 @@ export interface GitHubSetting {
   branchName: string;
   token: string;
   path: string;
+  /** CDN id from src/uploader/cdn.ts (e.g. "github-raw", "jsdelivr", "gh-proxy"). */
+  cdnId: string;
+  /** Optional custom CDN domain (used when cdnId is "__custom__"). */
+  customDomain: string;
 }

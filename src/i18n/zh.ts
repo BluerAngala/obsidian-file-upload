@@ -355,6 +355,96 @@ const zh: typeof en = {
             name: "语言",
             desc: "选择插件设置界面的显示语言。",
         },
+        cdn: {
+            heading: "CDN 加速",
+            desc: "选择一个 CDN 以加速图片访问。国内 CDN 适合中国大陆用户，海外 CDN 适合其他地区用户。",
+            select: {
+                name: "CDN",
+                desc: "对所有上传后的图片 URL 应用 CDN 改写。",
+            },
+            options: {
+                none: "不使用（使用图床默认 URL）",
+                custom: "自定义域名",
+            },
+            customDomain: {
+                name: "自定义 CDN 域名",
+                desc: "当 CDN 选择「自定义域名」时使用。填写主机名（如 cdn.example.com），协议默认为 https。",
+                placeholder: "cdn.example.com",
+            },
+        },
+        features: {
+            renameRules: {
+                heading: "重命名规则",
+                enabled: {
+                    name: "启用自定义文件命名模板",
+                    desc: "对上传的文件名应用路径模板和清洗规则。",
+                },
+                template: {
+                    name: "文件命名模板",
+                    desc: "上传路径的模板。支持 {year} {mon} {day} {random} {filename} 变量。例如 uploads/{year}/{mon}/{filename}",
+                    placeholder: "uploads/{year}/{mon}/{filename}",
+                },
+                spacesToDashes: {
+                    name: "将空格转换为短横线",
+                },
+                lowercase: {
+                    name: "文件名转小写",
+                },
+            },
+            compression: {
+                heading: "图片压缩",
+                enabled: {
+                    name: "启用压缩",
+                    desc: "在上传前调整尺寸和重新编码图片，以节省流量和存储空间。",
+                },
+                maxWidth: {
+                    name: "最大宽度 (px)",
+                    desc: "宽度超过此值的图片会被缩放。0 表示不缩放。",
+                },
+                quality: {
+                    name: "质量",
+                    desc: "JPEG/WebP 输出质量（0.1 – 1.0）。值越小文件越小。",
+                },
+                format: {
+                    name: "输出格式",
+                    desc: "上传时转换为该格式。\"保持原格式\" 不做转换。",
+                    options: {
+                        keep: "保持原格式",
+                    },
+                },
+            },
+            skipRules: {
+                heading: "跳过规则",
+                urlRegex: {
+                    name: "跳过匹配此正则的 URL",
+                    desc: "若网络图片的 URL 匹配此正则，则跳过上传（保留原 URL）。",
+                    placeholder: "^https://(cdn\\.jsdelivr\\.net|raw\\.githubusercontent\\.com)/",
+                },
+                pathRegex: {
+                    name: "跳过匹配此正则的本地路径",
+                    desc: "若本地文件路径匹配此正则，则跳过上传。",
+                    placeholder: "^templates/",
+                },
+                maxSize: {
+                    name: "跳过大于此大小的文件 (MB)",
+                    desc: "大于此大小的文件保持不动。0 表示禁用大小过滤。",
+                },
+            },
+            concurrency: {
+                heading: "上传并发数",
+                upload: {
+                    name: "并发上传数",
+                    desc: "并行上传的图片数量（1–16）。较高的值可能触发图床的速率限制。",
+                },
+            },
+            exif: {
+                heading: "EXIF 信息清除",
+                enabled: {
+                    name: "上传时清除 EXIF 元数据",
+                    desc: "在上传前移除 GPS 坐标、相机信息等 EXIF 标签。",
+                },
+            },
+        },
     },
 
     progressModal: {

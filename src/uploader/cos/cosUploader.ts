@@ -2,6 +2,8 @@ import {requestUrl} from "obsidian";
 import {createHash, createHmac} from "crypto";
 import ImageUploader from "../imageUploader";
 import {UploaderUtils} from "../uploaderUtils";
+import {applyCdn, encodePathSegments} from "../cdn";
+import type {CdnId} from "../cdn";
 
 const EXTENSION_MIME_MAP: Record<string, string> = {
     jpg: "image/jpeg",
@@ -19,6 +21,7 @@ export default class CosUploader implements ImageUploader {
 
     private readonly pathTmpl: string;
     private readonly customDomainName: string;
+    private readonly cdnId: CdnId;
     private readonly region: string;
     private readonly bucket: string;
     private readonly secretId: string;
@@ -27,6 +30,7 @@ export default class CosUploader implements ImageUploader {
     constructor(setting: CosSetting) {
         this.pathTmpl = setting.path;
         this.customDomainName = setting.customDomainName;
+        this.cdnId = setting.cdnId || "cos-native";
         this.bucket = setting.bucket;
         this.region = setting.region;
         this.secretId = setting.secretId;
@@ -42,8 +46,9 @@ export default class CosUploader implements ImageUploader {
         const body = await image.arrayBuffer();
         const contentType = this.resolveContentType(image);
         const host = `${this.bucket}.cos.${this.region}.myqcloud.com`;
-        const url = `https://${host}/${encodePathKey(key)}`;
-        const authorization = this.buildAuthorization("put", `/${key}`, host);
+        const encodedKey = encodePathSegments(key);
+        const url = `https://${host}/${encodedKey}`;
+        const authorization = this.buildAuthorization("put", `/${encodedKey}`, host);
 
         const response = await requestUrl({
             url,
@@ -64,7 +69,9 @@ export default class CosUploader implements ImageUploader {
             throw new Error(`Tencent COS upload failed (${response.status}): ${response.text || "no response body"}`);
         }
 
-        return UploaderUtils.customizeDomainName(url, this.customDomainName);
+        return applyCdn("TENCENTCLOUD_COS", url, this.cdnId, {
+            customDomain: this.customDomainName,
+        });
     }
 
     /**
@@ -106,13 +113,8 @@ export default class CosUploader implements ImageUploader {
 }
 
 /**
- * Encode an object key for inclusion in a COS URL. Slashes are preserved as
- * path separators; every other segment is percent-encoded.
+ * Settings for the Tencent COS uploader.
  */
-function encodePathKey(key: string): string {
-    return key.split("/").map(encodeURIComponent).join("/");
-}
-
 export interface CosSetting {
     region: string;
     bucket: string;
@@ -120,4 +122,5 @@ export interface CosSetting {
     secretKey: string;
     path: string;
     customDomainName: string;
+    cdnId?: string;
 }

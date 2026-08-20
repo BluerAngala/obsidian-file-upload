@@ -1,6 +1,8 @@
 import ImageUploader from "../imageUploader";
 import {PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
 import {UploaderUtils} from "../uploaderUtils";
+import {applyCdn, encodePathSegments} from "../cdn";
+import type {CdnId} from "../cdn";
 
 const EXTENSION_MIME_MAP: Record<string, string> = {
   jpg: "image/jpeg",
@@ -14,8 +16,10 @@ const EXTENSION_MIME_MAP: Record<string, string> = {
 export default class B2Uploader implements ImageUploader {
   private readonly s3!: S3Client;
   private readonly bucket!: string;
+  private readonly endpoint: string;
   private pathTmpl: string;
   private customDomainName: string;
+  private readonly cdnId: CdnId;
 
   constructor(setting: B2Setting) {
     const region = UploaderUtils.trimCredential(setting.region);
@@ -29,8 +33,10 @@ export default class B2Uploader implements ImageUploader {
       forcePathStyle: true,
     });
     this.bucket = UploaderUtils.trimCredential(setting.bucketName);
+    this.endpoint = `https://s3.${region}.backblazeb2.com`;
     this.pathTmpl = setting.path;
     this.customDomainName = setting.customDomainName;
+    this.cdnId = setting.cdnId || "s3-native";
   }
 
   supportsFileType(_extension: string): boolean {
@@ -50,7 +56,12 @@ export default class B2Uploader implements ImageUploader {
       Body: uint8Array,
       ContentType: contentType,
     }));
-    return UploaderUtils.customizeDomainName(path, this.customDomainName);
+    // B2 S3-compatible endpoint URL — same path-style layout as AWS S3
+    // so we can use the S3 native CDN module.
+    const storageUrl = `${this.endpoint}/${this.bucket}/${encodePathSegments(path)}`;
+    return applyCdn("BACKBLAZE_B2", storageUrl, this.cdnId, {
+      customDomain: this.customDomainName,
+    });
   }
 }
 
@@ -61,4 +72,5 @@ export interface B2Setting {
   bucketName: string;
   path: string;
   customDomainName: string;
+  cdnId?: string;
 }

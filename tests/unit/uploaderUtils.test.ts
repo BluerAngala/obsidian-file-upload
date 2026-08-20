@@ -108,13 +108,56 @@ describe("UploaderUtils.customizeDomainName", () => {
     expect(result).toBe("https://cdn.example.com/2026-07-04/Pasted%20image%2020260704164521.png");
   });
 
-  it("keeps trailing slash behavior of custom domain", () => {
+  it("preserves trailing slash from custom domain on full URLs (no double slash in middle)", () => {
+    // Old behavior produced `https://cdn.example.com//path/file.png` (double
+    // slash), which caused 404s on most CDNs. The fix moves the trailing
+    // slash to the end of the final URL.
     const result = UploaderUtils.customizeDomainName(
       "https://old.example.com/path/file.png",
       "cdn.example.com/",
     );
 
-    expect(result).toBe("https://cdn.example.com//path/file.png");
+    expect(result).toBe("https://cdn.example.com/path/file.png/");
+  });
+
+  it("strips http:// prefix from custom domain without producing https://http://...", () => {
+    // Bug fix: original code only stripped https://, so http:// inputs
+    // became `https://http://cdn.example.com/path`.
+    const result = UploaderUtils.customizeDomainName(
+      "https://old.example.com/path/file.png",
+      "http://cdn.example.com",
+    );
+
+    expect(result).toBe("https://cdn.example.com/path/file.png");
+  });
+
+  it("encodes Chinese filename in full URL path during domain swap", () => {
+    // Bug fix: original swap did not re-encode the path, leaving Chinese
+    // characters unescaped in the final URL, which broke CDN access.
+    const result = UploaderUtils.customizeDomainName(
+      "https://old.example.com/images/截图.png",
+      "cdn.example.com",
+    );
+
+    expect(result).toBe("https://cdn.example.com/images/%E6%88%AA%E5%9B%BE.png");
+  });
+
+  it("does not double-encode Chinese characters already percent-encoded", () => {
+    const result = UploaderUtils.customizeDomainName(
+      "https://old.example.com/images/%E6%88%AA%E5%9B%BE.png",
+      "cdn.example.com",
+    );
+
+    expect(result).toBe("https://cdn.example.com/images/%E6%88%AA%E5%9B%BE.png");
+  });
+
+  it("preserves query strings during domain swap", () => {
+    const result = UploaderUtils.customizeDomainName(
+      "https://old.example.com/file.png?v=1&t=abc",
+      "cdn.example.com",
+    );
+
+    expect(result).toBe("https://cdn.example.com/file.png?v=1&t=abc");
   });
 });
 

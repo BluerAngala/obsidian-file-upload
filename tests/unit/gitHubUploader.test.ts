@@ -13,13 +13,16 @@ vi.mock("@octokit/rest", () => ({
 
 import GitHubUploader from "../../src/uploader/github/gitHubUploader";
 
-function createUploader(): GitHubUploader {
+function createUploader(overrides: Partial<ConstructorParameters<typeof GitHubUploader>[0]> = {}): GitHubUploader {
     return new GitHubUploader({
         githubOwner: "owner",
         repositoryName: "repo",
         branchName: "main",
         token: "token",
         path: "",
+        cdnId: "github-raw",
+        customDomain: "",
+        ...overrides,
     });
 }
 
@@ -70,5 +73,43 @@ describe("GitHubUploader", () => {
             "https://raw.githubusercontent.com/owner/repo/main/second.png",
         );
         expect(octokitMocks.createOrUpdateFileContents).toHaveBeenCalledTimes(2);
+    });
+
+    it("returns jsdelivr URL when cdnId is 'jsdelivr'", async () => {
+        const uploader = createUploader({cdnId: "jsdelivr"});
+        const url = await uploader.upload(new File(["x"], "pic.png"), "/pic.png");
+        expect(url).toBe("https://cdn.jsdelivr.net/gh/owner/repo@main/pic.png");
+    });
+
+    it("returns gh-proxy.com URL when cdnId is 'gh-proxy' (domestic)", async () => {
+        const uploader = createUploader({cdnId: "gh-proxy"});
+        const url = await uploader.upload(new File(["x"], "pic.png"), "/pic.png");
+        expect(url).toBe(
+            "https://gh-proxy.com/https://raw.githubusercontent.com/owner/repo/main/pic.png",
+        );
+    });
+
+    it("uses custom domain when cdnId is '__custom__'", async () => {
+        const uploader = createUploader({cdnId: "__custom__", customDomain: "cdn.example.com"});
+        const url = await uploader.upload(new File(["x"], "pic.png"), "/pic.png");
+        expect(url).toBe("https://cdn.example.com/owner/repo/main/pic.png");
+    });
+
+    it("encodes Chinese filename in the storage URL (raw)", async () => {
+        const uploader = createUploader();
+        const url = await uploader.upload(new File(["x"], "截图.png"), "/截图.png");
+        expect(url).toBe("https://raw.githubusercontent.com/owner/repo/main/%E6%88%AA%E5%9B%BE.png");
+    });
+
+    it("encodes Chinese filename in the jsdelivr URL", async () => {
+        const uploader = createUploader({cdnId: "jsdelivr"});
+        const url = await uploader.upload(new File(["x"], "截图.png"), "/截图.png");
+        expect(url).toBe("https://cdn.jsdelivr.net/gh/owner/repo@main/%E6%88%AA%E5%9B%BE.png");
+    });
+
+    it("respects a configured upload path prefix", async () => {
+        const uploader = createUploader({path: "images/2026"});
+        const url = await uploader.upload(new File(["x"], "pic.png"), "/pic.png");
+        expect(url).toBe("https://raw.githubusercontent.com/owner/repo/main/images/2026/pic.png");
     });
 });

@@ -23,6 +23,11 @@ import type {R2Setting} from "./uploader/r2/r2Uploader";
 import type {B2Setting} from "./uploader/b2/b2Uploader";
 import type {GyazoSetting} from "./uploader/gyazo/gyazoUploader";
 import Translate, {type Language} from "./i18n/translate";
+import {DEFAULT_RENAME_OPTIONS, type RenameOptions} from "./uploader/features/renameRules";
+import {DEFAULT_COMPRESSION_OPTIONS, type CompressionOptions} from "./uploader/features/compression";
+import {DEFAULT_SKIP_RULES_OPTIONS, type SkipRulesOptions} from "./uploader/features/skipRules";
+import {DEFAULT_EXIF_OPTIONS, type ExifStripOptions} from "./uploader/features/exifStrip";
+import type {PlatformId} from "./uploader/features/platformFormat";
 
 export interface PublishSettings {
     imageAltText: boolean;
@@ -38,6 +43,15 @@ export interface PublishSettings {
     // Auto-upload settings
     autoUpload: boolean;
     autoUploadSizeLimit: number; // in MB
+    // Tier 1 features
+    renameRules: RenameOptions & { template: string };
+    compression: CompressionOptions;
+    skipRules: SkipRulesOptions;
+    // Tier 2 features
+    uploadConcurrency: number;       // 1..16
+    platformFormat: PlatformId;
+    // Tier 3 features
+    exifStrip: ExifStripOptions;
     // First-install tracking (empty string = first install)
     installedVersion: string;
     //Imgur Anonymous setting
@@ -66,6 +80,15 @@ const DEFAULT_SETTINGS: PublishSettings = {
     language: "zh",
     autoUpload: false,
     autoUploadSizeLimit: 30,
+    // Tier 1 features
+    renameRules: { ...DEFAULT_RENAME_OPTIONS, template: "" },
+    compression: { ...DEFAULT_COMPRESSION_OPTIONS },
+    skipRules: { ...DEFAULT_SKIP_RULES_OPTIONS },
+    // Tier 2 features
+    uploadConcurrency: 3,
+    platformFormat: "default",
+    // Tier 3 features
+    exifStrip: { ...DEFAULT_EXIF_OPTIONS },
     installedVersion: "",
     imgurAnonymousSetting: {clientId: IMGUR_PLUGIN_CLIENT_ID},
     gyazoSetting: {
@@ -81,6 +104,7 @@ const DEFAULT_SETTINGS: PublishSettings = {
         endpoint: "https://oss-cn-hangzhou.aliyuncs.com/",
         path: "",
         customDomainName: "",
+        cdnId: "oss-native",
     },
     imagekitSetting: {
         endpoint: "",
@@ -96,6 +120,7 @@ const DEFAULT_SETTINGS: PublishSettings = {
         bucketName: "",
         path: "",
         customDomainName: "",
+        cdnId: "s3-native",
     },
     cosSetting: {
         region: "",
@@ -104,20 +129,24 @@ const DEFAULT_SETTINGS: PublishSettings = {
         secretKey: "",
         path: "",
         customDomainName: "",
+        cdnId: "cos-native",
     },
     kodoSetting: {
         accessKey: "",
         secretKey: "",
         bucket: "",
         customDomainName: "",
-        path: ""
+        path: "",
+        cdnId: "qiniu-native",
     },
     githubSetting: {
         githubOwner: "",
         repositoryName: "",
         branchName: "main",
         token: "",
-        path: "images"
+        path: "images",
+        cdnId: "jsdelivr",
+        customDomain: "",
     },
     r2Setting: {
         accessKeyId: "",
@@ -126,6 +155,7 @@ const DEFAULT_SETTINGS: PublishSettings = {
         bucketName: "",
         path: "",
         customDomainName: "",
+        cdnId: "r2-native",
     },
     b2Setting: {
         accessKeyId: "",
@@ -134,6 +164,7 @@ const DEFAULT_SETTINGS: PublishSettings = {
         bucketName: "",
         path: "",
         customDomainName: "",
+        cdnId: "s3-native",
     },
 };
 export default class ObsidianPublish extends Plugin {
@@ -142,6 +173,8 @@ export default class ObsidianPublish extends Plugin {
     imageUploader: ImageUploader;
     statusBarItem: HTMLElement;
     translate: Translate;
+    /** Set by `PublishSettingTab` so welcome / log / etc. can switch tabs. */
+    settingTab: PublishSettingTab | null = null;
 
     async onload() {
         await this.loadSettings();
@@ -199,7 +232,8 @@ export default class ObsidianPublish extends Plugin {
             })
         );
 
-        this.addSettingTab(new PublishSettingTab(this.app, this));
+        this.settingTab = new PublishSettingTab(this.app, this);
+        this.addSettingTab(this.settingTab);
 
         // ── First-install: auto-open settings ──
         if (!this.settings.installedVersion) {
@@ -223,6 +257,41 @@ export default class ObsidianPublish extends Plugin {
         this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
         this.settings.imageStore = ImageStore.normalizeId(this.settings.imageStore);
         this.settings.gyazoSetting = Object.assign({}, DEFAULT_SETTINGS.gyazoSetting, loadedData?.gyazoSetting);
+        // Deep-merge new feature settings so missing fields in old data.json
+        // don't fall through to undefined.
+        this.settings.renameRules = Object.assign({} as PublishSettings["renameRules"], DEFAULT_SETTINGS.renameRules, loadedData?.renameRules);
+        this.settings.compression = Object.assign({} as PublishSettings["compression"], DEFAULT_SETTINGS.compression, loadedData?.compression);
+        this.settings.skipRules = Object.assign({} as PublishSettings["skipRules"], DEFAULT_SETTINGS.skipRules, loadedData?.skipRules);
+        this.settings.exifStrip = Object.assign({} as PublishSettings["exifStrip"], DEFAULT_SETTINGS.exifStrip, loadedData?.exifStrip);
+        this.settings.githubSetting = Object.assign({} as PublishSettings["githubSetting"], DEFAULT_SETTINGS.githubSetting, loadedData?.githubSetting);
+        // One-shot migration: existing users who still carry the pre-1.6.8
+        // default of "github-raw" (i.e. they never picked a CDN themselves)
+        // are switched to "jsdelivr" so out-of-the-box uploads get a fast
+        // CDN URL instead of the slow raw.githubusercontent.com host.
+        if (this.shouldMigrateCdnDefault()) {
+            if (this.settings.githubSetting.cdnId === "github-raw") {
+                this.settings.githubSetting.cdnId = "jsdelivr";
+            }
+        }
+    }
+
+    /**
+     * Returns true if the user's installedVersion is from a build prior to
+     * the jsdelivr default — i.e. they're upgrading from a version where
+     * "github-raw" was the hard-coded default. Empty installedVersion
+     * means fresh install, which already gets the new default via
+     * DEFAULT_SETTINGS, so no migration is needed.
+     */
+    private shouldMigrateCdnDefault(): boolean {
+        const v = this.settings.installedVersion;
+        if (!v) return false;
+        // Simple semver-ish compare: split on ".", pad, compare lexicographically.
+        const parse = (s: string) => s.split(".").map(n => parseInt(n, 10) || 0);
+        const [aMaj, aMin, aPat] = parse(v);
+        const [bMaj, bMin, bPat] = parse(this.manifest?.version || "1.6.7");
+        if (aMaj !== bMaj) return aMaj < bMaj;
+        if (aMin !== bMin) return aMin < bMin;
+        return aPat < bPat;
     }
 
     async saveSettings() {
