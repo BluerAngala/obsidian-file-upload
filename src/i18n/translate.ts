@@ -25,10 +25,12 @@ export default class Translate {
      */
     t(key: string): string {
         const parts = key.split(".");
-        let obj: unknown = this.dict;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let obj: any = this.dict;
         for (const p of parts) {
-            if (obj && typeof obj === "object" && p in (obj as Record<string, unknown>)) {
-                obj = (obj as Record<string, unknown>)[p];
+            if (obj && typeof obj === "object" && p in obj) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+                obj = obj[p];
             } else {
                 return key;
             }

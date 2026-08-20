@@ -22,9 +22,11 @@ export default class PublishSettingTab extends PluginSettingTab {
         const {containerEl} = this;
         containerEl.empty();
         containerEl.addClass("iuf-settings");
+        // Remove top padding from Obsidian's settings container
+        containerEl.parentElement?.classList.add("iuf-settings-parent");
         this.plugin.settings.imageStore = ImageStore.normalizeId(this.plugin.settings.imageStore);
 
-        const t = this.plugin.translate.t.bind(this.plugin.translate);
+        const t: (key: string) => string = (key: string) => this.plugin.translate.t(key);
 
         // ── Tab bar ──
         const tabBar = containerEl.createDiv({cls: "iuf-tab-bar"});
@@ -54,6 +56,8 @@ export default class PublishSettingTab extends PluginSettingTab {
     }
 
     hide(): void {
+        // Restore parent padding when leaving our settings
+        this.containerEl.parentElement?.classList.remove("iuf-settings-parent");
         // Mark as installed when user closes settings (even without clicking "Get Started")
         if (!this.plugin.settings.installedVersion) {
             this.plugin.settings.installedVersion = this.plugin.manifest?.version || "1.0.0";
@@ -81,7 +85,7 @@ export default class PublishSettingTab extends PluginSettingTab {
     // ── Welcome ──
 
     private renderWelcome(el: HTMLDivElement): void {
-        const t = this.t.bind(this);
+        const t: (key: string) => string = (key: string) => this.t(key);
 
         // Hero
         const hero = el.createDiv({cls: "iuf-welcome-hero"});
@@ -150,7 +154,7 @@ export default class PublishSettingTab extends PluginSettingTab {
     // ── General ──
 
     private renderGeneral(el: HTMLDivElement): void {
-        const t = this.t.bind(this);
+        const t: (key: string) => string = (key: string) => this.t(key);
 
         new Setting(el)
             .setName(t("settings.language.name"))
@@ -198,7 +202,7 @@ export default class PublishSettingTab extends PluginSettingTab {
     // ── Upload ──
 
     private renderUpload(el: HTMLDivElement): void {
-        const t = this.t.bind(this);
+        const t: (key: string) => string = (key: string) => this.t(key);
 
         new Setting(el)
             .setName(t("settings.upload.showProgressModal.name"))
@@ -245,7 +249,7 @@ export default class PublishSettingTab extends PluginSettingTab {
     // ── Mermaid ──
 
     private renderMermaid(el: HTMLDivElement): void {
-        const t = this.t.bind(this);
+        const t: (key: string) => string = (key: string) => this.t(key);
 
         new Setting(el)
             .setName(t("settings.mermaid.convert.name"))
@@ -287,7 +291,7 @@ export default class PublishSettingTab extends PluginSettingTab {
     // ── Image Store ──
 
     private renderImageStore(el: HTMLDivElement): void {
-        const t = this.t.bind(this);
+        const t: (key: string) => string = (key: string) => this.t(key);
 
         const imageStoreTypeDiv = el.createDiv();
         this.imageStoreDiv = el.createDiv();

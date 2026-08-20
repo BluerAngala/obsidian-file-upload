@@ -112,15 +112,13 @@
 
 /* ── Settings tabs ─────────────────────────────────────────────────────── */
 
-/* Override Obsidian's scroll when our settings are active */
-.modal-content:has(.iuf-settings) {
-    overflow-y: hidden !important;
+.iuf-settings {
+    padding-top: 0;
 }
 
-.iuf-settings {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
+/* Remove top padding from parent settings container when our settings are displayed */
+.iuf-settings-parent {
+    padding-top: 0 !important;
 }
 
 .iuf-settings .iuf-tab-bar {
@@ -128,14 +126,12 @@
     justify-content: center;
     gap: 0;
     border-bottom: 2px solid var(--background-modifier-border);
-    margin-bottom: 16px;
-    flex-shrink: 0;
-}
-
-.iuf-settings .iuf-tab-content {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
+    margin: 0 0 12px 0;
+    background: var(--background-primary);
+    padding: 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .iuf-settings .iuf-tab-btn {
@@ -148,6 +144,7 @@
     transition: color 0.15s, border-color 0.15s;
     user-select: none;
     text-align: center;
+    white-space: nowrap;
 }
 
 .iuf-settings .iuf-tab-btn:hover {
@@ -164,7 +161,7 @@
 
 .iuf-welcome-hero {
     text-align: center;
-    padding: 24px 0 16px;
+    padding: 16px 0 12px;
 }
 
 .iuf-welcome-hero .setting-item {
@@ -207,19 +204,11 @@
     text-align: center;
     padding: 12px 0 16px;
     border-top: 1px solid var(--background-modifier-border);
-    position: sticky;
-    bottom: 0;
-    background: var(--background-primary);
-    z-index: 2;
 }
 
 .iuf-welcome-hint {
     text-align: center;
     padding: 8px 0 4px;
-    position: sticky;
-    bottom: 52px;
-    background: var(--background-primary);
-    z-index: 1;
 }
 
 .iuf-welcome-hint p {

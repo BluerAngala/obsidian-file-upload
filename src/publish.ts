@@ -164,8 +164,10 @@ export default class ObsidianPublish extends Plugin {
         // ── Ribbon icon ──
         this.addRibbonIcon("upload-cloud", this.translate.t("ribbon.title"), () => {
             // @ts-expect-error - setting API available at runtime
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             this.app.setting.open();
             // @ts-expect-error - openTabById available at runtime
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             this.app.setting.openTabById(this.manifest.id);
         });
 
@@ -191,7 +193,7 @@ export default class ObsidianPublish extends Plugin {
                 if (!this.settings.autoUpload) return;
                 if (!(file instanceof TFile)) return;
                 // Skip if the file is in the plugin directory
-                if (file.path.startsWith(".obsidian/")) return;
+                if (file.path.startsWith(this.app.vault.configDir + "/")) return;
                 void this.handleAutoUpload(file);
             })
         );
@@ -202,8 +204,10 @@ export default class ObsidianPublish extends Plugin {
         if (!this.settings.installedVersion) {
             this.app.workspace.onLayoutReady(() => {
                 // @ts-expect-error - openTabById is available but not typed
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
                 this.app.setting.open();
                 // @ts-expect-error - openTabById is available but not typed
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
                 this.app.setting.openTabById(this.manifest.id);
             });
         }
