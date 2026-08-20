@@ -10,6 +10,7 @@ const en = {
             welcome: "Welcome",
             general: "General",
             upload: "Upload",
+            uploadLog: "Upload History",
             mermaid: "Mermaid",
             imageStore: "Image Store",
         },

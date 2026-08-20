@@ -10,6 +10,7 @@ const zh: typeof en = {
             welcome: "欢迎",
             general: "通用",
             upload: "上传",
+            uploadLog: "上传历史",
             mermaid: "Mermaid",
             imageStore: "图床",
         },

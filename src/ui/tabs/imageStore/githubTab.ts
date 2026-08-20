@@ -148,7 +148,6 @@ export const renderGithubSettings: TabRenderer = (el, {plugin, t}) => {
 
     // ── CDN (new) — jsdelivr / Statically / gh-proxy / etc. ──
     renderCdnSection(el, plugin, t, {
-        providerId: "GITHUB",
         githubOwner: settings.githubOwner,
         githubRepo: settings.repositoryName,
         githubBranch: settings.branchName,

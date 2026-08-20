@@ -15,9 +15,10 @@ import {renderGeneralTab} from "./tabs/generalTab";
 import {renderUploadTab} from "./tabs/uploadTab";
 import {renderMermaidTab} from "./tabs/mermaidTab";
 import {renderImageStoreTab} from "./tabs/imageStoreTab";
+import {renderUploadLogTab} from "./tabs/uploadLogTab";
 import type {TabContext, TabRenderer} from "./tabs/types";
 
-type TabId = "welcome" | "general" | "upload" | "mermaid" | "imageStore";
+type TabId = "welcome" | "general" | "upload" | "mermaid" | "imageStore" | "uploadLog";
 
 interface TabSpec {
     id: TabId;
@@ -29,6 +30,7 @@ const TABS: TabSpec[] = [
     { id: "welcome", labelKey: "settings.tabs.welcome", render: renderWelcomeTab },
     { id: "general", labelKey: "settings.tabs.general", render: renderGeneralTab },
     { id: "upload", labelKey: "settings.tabs.upload", render: renderUploadTab },
+    { id: "uploadLog", labelKey: "settings.tabs.uploadLog", render: renderUploadLogTab },
     { id: "mermaid", labelKey: "settings.tabs.mermaid", render: renderMermaidTab },
     { id: "imageStore", labelKey: "settings.tabs.imageStore", render: renderImageStoreTab as TabRenderer },
 ];

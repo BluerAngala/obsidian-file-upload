@@ -10,6 +10,7 @@ const zhTw: typeof en = {
             welcome: "歡迎",
             general: "通用",
             upload: "上傳",
+            uploadLog: "上傳歷史",
             mermaid: "Mermaid",
             imageStore: "圖床",
         },

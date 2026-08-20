@@ -8,7 +8,6 @@ import {renderExifSection} from "./features/exifTab";
 import {PLATFORMS} from "../../uploader/features/platformFormat";
 import type {PlatformId} from "../../uploader/features/platformFormat";
 import {renderPerFolderOverrideSection} from "./features/perFolderOverrideTab";
-import {renderUploadLogTab} from "./features/uploadLogTab";
 
 /**
  * Upload tab — the catch-all for everything related to the upload pipeline:
@@ -22,7 +21,7 @@ import {renderUploadLogTab} from "./features/uploadLogTab";
  *   • Tier 2 feature: platform format
  *   • Tier 3 feature: EXIF strip
  *   • Tier 3 feature: per-folder override
- *   • Upload log (separate section)
+ *   (Upload log moved to a separate "uploadLog" tab.)
  */
 export const renderUploadTab: TabRenderer = (el, ctx) => {
     const {plugin, t} = ctx;
@@ -97,7 +96,4 @@ export const renderUploadTab: TabRenderer = (el, ctx) => {
 
     // ── Per-folder override (Tier 3) ──
     renderPerFolderOverrideSection(el, ctx);
-
-    // ── Upload log section ──
-    void renderUploadLogTab(el, ctx);
 };
