@@ -286,13 +286,13 @@
 }
 
 .iuf-github-connected {
-    color: var(--interactive-success);
+    color: var(--color-green);
     font-size: var(--font-ui-small);
     font-weight: var(--font-medium);
 }
 
 .iuf-github-link {
-    color: var(--interactive-success);
+    color: var(--color-green);
     font-size: var(--font-ui-small);
     font-weight: var(--font-medium);
     text-decoration: none;
