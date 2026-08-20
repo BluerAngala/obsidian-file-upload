@@ -86,22 +86,22 @@ const GITHUB_CDNS: CdnOption[] = [
     },
     {
         id: "jsdelivr",
-        label: "jsDelivr (cdn.jsdelivr.net)",
+        label: "jsDelivr (fastly.jsdelivr.net)",
+        region: "foreign",
+        rewrite: (_pid, _url, ctx) => {
+            if (!ctx.githubOwner || !ctx.githubRepo || !ctx.githubPath) return null;
+            const branch = ctx.githubBranch || "main";
+            return `https://fastly.jsdelivr.net/gh/${ctx.githubOwner}/${ctx.githubRepo}@${branch}/${encodePathSegments(ctx.githubPath)}`;
+        },
+    },
+    {
+        id: "jsdelivr-cdn",
+        label: "jsDelivr CDN (cdn.jsdelivr.net, 国内可能无法访问)",
         region: "foreign",
         rewrite: (_pid, _url, ctx) => {
             if (!ctx.githubOwner || !ctx.githubRepo || !ctx.githubPath) return null;
             const branch = ctx.githubBranch || "main";
             return `https://cdn.jsdelivr.net/gh/${ctx.githubOwner}/${ctx.githubRepo}@${branch}/${encodePathSegments(ctx.githubPath)}`;
-        },
-    },
-    {
-        id: "jsdelivr-fastly",
-        label: "jsDelivr Fastly (test1.jsdelivr.net)",
-        region: "foreign",
-        rewrite: (_pid, _url, ctx) => {
-            if (!ctx.githubOwner || !ctx.githubRepo || !ctx.githubPath) return null;
-            const branch = ctx.githubBranch || "main";
-            return `https://test1.jsdelivr.net/gh/${ctx.githubOwner}/${ctx.githubRepo}@${branch}/${encodePathSegments(ctx.githubPath)}`;
         },
     },
     {
@@ -138,6 +138,28 @@ const GITHUB_CDNS: CdnOption[] = [
         label: "ghps.cc (国内代理)",
         region: "domestic",
         rewrite: (_pid, storageUrl) => `https://ghps.cc/${storageUrl}`,
+    },
+    {
+        id: "ghproxy",
+        label: "ghproxy.com (国内代理)",
+        region: "domestic",
+        rewrite: (_pid, storageUrl) => `https://ghproxy.com/${storageUrl}`,
+    },
+    {
+        id: "raw-staticdn",
+        label: "raw.staticdn.net (国内镜像)",
+        region: "domestic",
+        rewrite: (_pid, _url, ctx) => {
+            if (!ctx.githubOwner || !ctx.githubRepo || !ctx.githubPath) return null;
+            const branch = ctx.githubBranch || "main";
+            return `https://raw.staticdn.net/${ctx.githubOwner}/${ctx.githubRepo}/${branch}/${encodePathSegments(ctx.githubPath)}`;
+        },
+    },
+    {
+        id: "gitwarp",
+        label: "proxy.gitwarp.com (全球加速)",
+        region: "domestic",
+        rewrite: (_pid, storageUrl) => `https://proxy.gitwarp.com/${storageUrl}`,
     },
 ];
 

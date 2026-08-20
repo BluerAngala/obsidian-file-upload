@@ -83,14 +83,21 @@ export const renderGithubSettings: TabRenderer = (el, {plugin, t}) => {
                 settings.githubOwner = owner;
                 void plugin.saveSettings();
                 updateStatus();
+                // After fetching owner, always try to create/verify the repo
+                return GitHubUploader.createRepository(token, settings.repositoryName);
+            }).then(repo => {
+                settings.githubOwner = repo.owner;
+                settings.repositoryName = repo.repo;
+                settings.branchName = repo.branch;
+                void plugin.saveSettings();
+                plugin.settingTab?.display();
+                new Notice(`✓ ${t.t("settings.imageStore.github.connected")}: ${settings.repositoryName}`);
             }).catch((err: unknown) => {
                 const msg = err instanceof Error ? err.message : JSON.stringify(err);
                 new Notice(`✗ ${t.t("settings.imageStore.github.createFailed")}: ${msg}`);
             });
-        }
-
-        if (!settings.repositoryName) {
-            GitHubUploader.createRepository(token).then(repo => {
+        } else if (!settings.repositoryName) {
+            GitHubUploader.createRepository(token, settings.repositoryName).then(repo => {
                 settings.githubOwner = repo.owner;
                 settings.repositoryName = repo.repo;
                 settings.branchName = repo.branch;

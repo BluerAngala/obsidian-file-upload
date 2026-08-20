@@ -78,7 +78,7 @@ describe("GitHubUploader", () => {
     it("returns jsdelivr URL when cdnId is 'jsdelivr'", async () => {
         const uploader = createUploader({cdnId: "jsdelivr"});
         const url = await uploader.upload(new File(["x"], "pic.png"), "/pic.png");
-        expect(url).toBe("https://cdn.jsdelivr.net/gh/owner/repo@main/pic.png");
+        expect(url).toBe("https://fastly.jsdelivr.net/gh/owner/repo@main/pic.png");
     });
 
     it("returns gh-proxy.com URL when cdnId is 'gh-proxy' (domestic)", async () => {
@@ -104,7 +104,7 @@ describe("GitHubUploader", () => {
     it("encodes Chinese filename in the jsdelivr URL", async () => {
         const uploader = createUploader({cdnId: "jsdelivr"});
         const url = await uploader.upload(new File(["x"], "截图.png"), "/截图.png");
-        expect(url).toBe("https://cdn.jsdelivr.net/gh/owner/repo@main/%E6%88%AA%E5%9B%BE.png");
+        expect(url).toBe("https://fastly.jsdelivr.net/gh/owner/repo@main/%E6%88%AA%E5%9B%BE.png");
     });
 
     it("respects a configured upload path prefix", async () => {

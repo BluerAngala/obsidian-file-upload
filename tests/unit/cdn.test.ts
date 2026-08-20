@@ -58,13 +58,16 @@ describe("cdn.encodePathSegments", () => {
 });
 
 describe("cdn.getCdnsForProvider", () => {
-    it("returns GitHub CDNs including jsdelivr and gh-proxy", () => {
+    it("returns GitHub CDNs including jsdelivr, gh-proxy, and ghproxy", () => {
         const cdns = getCdnsForProvider("GITHUB");
         const ids = cdns.map((c) => c.id);
         expect(ids).toContain("github-raw");
         expect(ids).toContain("jsdelivr");
         expect(ids).toContain("gh-proxy");
         expect(ids).toContain("statically");
+        expect(ids).toContain("ghproxy");
+        expect(ids).toContain("raw-staticdn");
+        expect(ids).toContain("gitwarp");
     });
 
     it("returns domestic+foreign options for OSS", () => {
@@ -121,14 +124,14 @@ describe("cdn.applyCdn", () => {
         expect(applyCdn("GITHUB", ghUrl, CUSTOM_CDN_ID, {})).toBe(ghUrl);
     });
 
-    it("rewrites to jsdelivr for github/jsdelivr", () => {
+    it("rewrites to jsdelivr (fastly.jsdelivr.net)", () => {
         const result = applyCdn("GITHUB", ghUrl, "jsdelivr", ghCtx);
-        expect(result).toBe("https://cdn.jsdelivr.net/gh/owner/repo@main/images/foo.png");
+        expect(result).toBe("https://fastly.jsdelivr.net/gh/owner/repo@main/images/foo.png");
     });
 
-    it("rewrites to jsdelivr Fastly mirror", () => {
-        const result = applyCdn("GITHUB", ghUrl, "jsdelivr-fastly", ghCtx);
-        expect(result).toBe("https://test1.jsdelivr.net/gh/owner/repo@main/images/foo.png");
+    it("rewrites to jsdelivr CDN (cdn.jsdelivr.net)", () => {
+        const result = applyCdn("GITHUB", ghUrl, "jsdelivr-cdn", ghCtx);
+        expect(result).toBe("https://cdn.jsdelivr.net/gh/owner/repo@main/images/foo.png");
     });
 
     it("rewrites to Statically", () => {
@@ -151,7 +154,22 @@ describe("cdn.applyCdn", () => {
             ...ghCtx,
             githubPath: "images/截图.png",
         });
-        expect(result).toBe("https://cdn.jsdelivr.net/gh/owner/repo@main/images/%E6%88%AA%E5%9B%BE.png");
+        expect(result).toBe("https://fastly.jsdelivr.net/gh/owner/repo@main/images/%E6%88%AA%E5%9B%BE.png");
+    });
+
+    it("rewrites to ghproxy.com (domestic)", () => {
+        const result = applyCdn("GITHUB", ghUrl, "ghproxy", ghCtx);
+        expect(result).toBe("https://ghproxy.com/" + ghUrl);
+    });
+
+    it("rewrites to raw.staticdn.net (domestic)", () => {
+        const result = applyCdn("GITHUB", ghUrl, "raw-staticdn", ghCtx);
+        expect(result).toBe("https://raw.staticdn.net/owner/repo/main/images/foo.png");
+    });
+
+    it("rewrites to proxy.gitwarp.com (domestic)", () => {
+        const result = applyCdn("GITHUB", ghUrl, "gitwarp", ghCtx);
+        expect(result).toBe("https://proxy.gitwarp.com/" + ghUrl);
     });
 
     it("returns raw URL when unknown cdnId", () => {
@@ -164,7 +182,7 @@ describe("cdn.applyCdn", () => {
             githubRepo: "repo",
             githubPath: "f.png",
         });
-        expect(result).toBe("https://cdn.jsdelivr.net/gh/owner/repo@main/f.png");
+        expect(result).toBe("https://fastly.jsdelivr.net/gh/owner/repo@main/f.png");
     });
 
     it("OSS accelerate rewrite swaps host to oss-accelerate endpoint", () => {
