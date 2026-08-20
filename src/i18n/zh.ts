@@ -373,7 +373,7 @@ const zh: typeof en = {
     },
 
     ribbon: {
-        title: "发布页面到云端",
+        title: "打开插件设置",
     },
 
     contextMenu: {

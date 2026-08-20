@@ -163,7 +163,10 @@ export default class ObsidianPublish extends Plugin {
 
         // ── Ribbon icon ──
         this.addRibbonIcon("upload-cloud", this.translate.t("ribbon.title"), () => {
-            this.publish();
+            // @ts-expect-error - setting API available at runtime
+            this.app.setting.open();
+            // @ts-expect-error - openTabById available at runtime
+            this.app.setting.openTabById(this.manifest.id);
         });
 
         // ── File context menu ──

@@ -385,7 +385,7 @@ const en = {
     },
 
     ribbon: {
-        title: "Publish page to cloud",
+        title: "Open plugin settings",
     },
 
     contextMenu: {

@@ -373,7 +373,7 @@ const zhTw: typeof en = {
     },
 
     ribbon: {
-        title: "發佈頁面到雲端",
+        title: "開啟外掛設定",
     },
 
     contextMenu: {

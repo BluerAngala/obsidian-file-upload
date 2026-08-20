@@ -15,7 +15,6 @@ export default class PublishSettingTab extends PluginSettingTab {
     constructor(app: App, plugin: ObsidianPublish) {
         super(app, plugin);
         this.plugin = plugin;
-        // First install → show welcome tab; otherwise show general
         this.activeTab = plugin.settings.installedVersion ? "general" : "welcome";
     }
 
@@ -37,13 +36,8 @@ export default class PublishSettingTab extends PluginSettingTab {
             {id: "imageStore", label: t("settings.tabs.imageStore")},
         ];
 
-        // Hide welcome tab after first install
-        const visibleTabs = this.plugin.settings.installedVersion
-            ? tabs.filter(tab => tab.id !== "welcome")
-            : tabs;
-
         const tabButtons: Map<TabId, HTMLDivElement> = new Map();
-        for (const tab of visibleTabs) {
+        for (const tab of tabs) {
             const btn = tabBar.createDiv({cls: "iuf-tab-btn", text: tab.label});
             if (tab.id === this.activeTab) btn.addClass("active");
             btn.addEventListener("click", () => {
@@ -136,7 +130,10 @@ export default class PublishSettingTab extends PluginSettingTab {
         this.imageStoreDiv = providerDiv;
         void this.drawImageStoreSettings(providerDiv);
 
-        // Get started button
+        // ── Fixed footer ──
+        const hint = el.createDiv({cls: "iuf-welcome-hint"});
+        hint.createEl("p", {text: t("settings.welcome.usageHint")});
+
         const btnRow = el.createDiv({cls: "iuf-welcome-actions"});
         const btn = btnRow.createEl("button", {
             text: t("settings.welcome.getStarted"),
@@ -145,14 +142,9 @@ export default class PublishSettingTab extends PluginSettingTab {
         btn.addEventListener("click", () => {
             this.plugin.settings.installedVersion = this.plugin.manifest?.version || "1.0.0";
             void this.plugin.saveSettings();
-            // Switch to general tab
             this.activeTab = "general";
             this.display();
         });
-
-        // Usage hint
-        const hint = el.createDiv({cls: "iuf-welcome-hint"});
-        hint.createEl("p", {text: t("settings.welcome.usageHint")});
     }
 
     // ── General ──
