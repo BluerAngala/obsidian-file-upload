@@ -722,6 +722,11 @@ export default class PublishSettingTab extends PluginSettingTab {
         });
         tokenInput.placeholder = t("settings.imageStore.github.token.placeholder");
         tokenInput.value = settings.token;
+
+        // Track the token value seen at last blur so we can detect a change
+        // and invalidate the cached owner / repository before refetching.
+        let lastSeenToken = settings.token;
+
         tokenInput.addEventListener("input", () => {
             settings.token = tokenInput.value;
             this.plugin.settings.githubSetting = settings;
@@ -741,11 +746,30 @@ export default class PublishSettingTab extends PluginSettingTab {
         // On token blur: (1) auto-fetch the GitHub username (owner) so the
         // status line can show the full owner/repo path; (2) if no repository
         // is configured yet, auto-create the default one.
+        // If the token changed since the last blur, the cached owner / repo
+        // are stale and get cleared first so they are refetched for the new
+        // token.
         tokenInput.addEventListener("blur", () => {
-            if (!settings.token) return;
+            const token = tokenInput.value;
+            if (!token) return;
+
+            if (token !== lastSeenToken) {
+                lastSeenToken = token;
+                if (settings.githubOwner) {
+                    settings.githubOwner = "";
+                }
+                if (settings.repositoryName) {
+                    // Repo name is repo-only and re-usable across tokens, but
+                    // clear it so we can re-verify the new token can see it.
+                    settings.repositoryName = "";
+                }
+                this.plugin.settings.githubSetting = settings;
+                void this.plugin.saveSettings();
+                updateStatus();
+            }
 
             if (!settings.githubOwner) {
-                GitHubUploader.fetchOwner(settings.token).then(owner => {
+                GitHubUploader.fetchOwner(token).then(owner => {
                     settings.githubOwner = owner;
                     this.plugin.settings.githubSetting = settings;
                     void this.plugin.saveSettings();
@@ -757,7 +781,7 @@ export default class PublishSettingTab extends PluginSettingTab {
             }
 
             if (!settings.repositoryName) {
-                GitHubUploader.createRepository(settings.token).then(repo => {
+                GitHubUploader.createRepository(token).then(repo => {
                     settings.githubOwner = repo.owner;
                     settings.repositoryName = repo.repo;
                     settings.branchName = repo.branch;
