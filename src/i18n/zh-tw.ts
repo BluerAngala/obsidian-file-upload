@@ -74,7 +74,7 @@ const zhTw: typeof en = {
             providers: {
                 IMGUR: "Imgur 上傳",
                 ALIYUN_OSS: "阿里雲 OSS",
-                ImageKit: "ImageKit",
+                Imagekit: "ImageKit",
                 AWS_S3: "AWS S3",
                 TENCENTCLOUD_COS: "騰訊雲 COS",
                 QINIU_KUDO: "七牛雲 Kodo",

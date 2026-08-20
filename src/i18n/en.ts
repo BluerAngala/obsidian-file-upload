@@ -74,7 +74,7 @@ const en = {
             providers: {
                 IMGUR: "Imgur upload",
                 ALIYUN_OSS: "AliYun OSS",
-                ImageKit: "Imagekit",
+                Imagekit: "Imagekit",
                 AWS_S3: "AWS S3",
                 TENCENTCLOUD_COS: "TencentCloud COS",
                 QINIU_KUDO: "Qiniu KuDo",
