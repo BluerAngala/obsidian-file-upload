@@ -1,7 +1,7 @@
 {
   "id": "obsidian-file-upload",
   "name": "File Upload / 文件上传",
-  "description": "Upload local images to cloud storage, supports 10+ providers, mermaid to PNG, i18n (中文/English/繁體中文)",
+  "description": "Upload local images to cloud storage, 10+ storage providers, mermaid to PNG, i18n\n将本地图片上传至云端存储，支持 10+ 存储服务商、Mermaid 转 PNG、多语言界面",
   "author": "BluerAngala",
   "authorUrl": "",
   "isDesktopOnly": true,
