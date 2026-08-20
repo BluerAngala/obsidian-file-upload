@@ -50,6 +50,16 @@ const context = await esbuild.context({
     sourcemap: prod ? false : "inline",
     minify: prod,
     logLevel: "info",
+    plugins: watch && pluginDir ? [{
+        name: "auto-deploy",
+        setup(build) {
+            build.onEnd(async (result) => {
+                if (result.errors.length === 0) {
+                    await deploy();
+                }
+            });
+        },
+    }] : [],
 });
 
 await mkdir("dist", {recursive: true});
@@ -58,8 +68,6 @@ await copyFile("src/styles.css", "dist/styles.css");
 
 if (watch) {
     await context.watch();
-    // Deploy on first build (watch triggers an initial build)
-    setTimeout(deploy, 500);
     console.log("");
     console.log("── Dev mode ──────────────────────────────────────────────");
     if (pluginDir) {
