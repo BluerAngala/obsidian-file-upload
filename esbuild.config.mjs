@@ -32,6 +32,7 @@ async function deploy() {
         copyFile("dist/main.js", `${pluginDir}/main.js`),
         copyFile("manifest.json", `${pluginDir}/manifest.json`),
         copyFile("src/styles.css", `${pluginDir}/styles.css`),
+        copyFile(".hotreload", `${pluginDir}/.hotreload`).catch(() => {}),
     ]);
     console.log(`[deploy] Copied to ${pluginDir}`);
 }

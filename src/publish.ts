@@ -1,6 +1,8 @@
 import {
     Notice,
     Plugin,
+    TFile,
+    MarkdownView,
 } from "obsidian";
 
 import ImageTagProcessor, {ACTION_PUBLISH} from "./uploader/imageTagProcessor";
@@ -27,12 +29,15 @@ export interface PublishSettings {
     replaceOriginalDoc: boolean;
     ignoreProperties: boolean;
     imageStore: string;
-    showProgressModal: boolean; // New setting to control progress modal display
-    uploadWebImages: boolean; // New setting to enable web image upload
-    convertMermaid: boolean; // Convert mermaid code blocks to PNG images on publish
-    mermaidScale: number; // Canvas scale factor for mermaid PNG export (1–4, default 2)
-    mermaidTheme: string; // Mermaid render theme: default, dark, forest, neutral, base
-    language: Language; // Display language
+    showProgressModal: boolean;
+    uploadWebImages: boolean;
+    convertMermaid: boolean;
+    mermaidScale: number;
+    mermaidTheme: string;
+    language: Language;
+    // Auto-upload settings
+    autoUpload: boolean;
+    autoUploadSizeLimit: number; // in MB
     //Imgur Anonymous setting
     imgurAnonymousSetting: ImgurAnonymousSetting;
     gyazoSetting: GyazoSetting;
@@ -51,12 +56,14 @@ const DEFAULT_SETTINGS: PublishSettings = {
     replaceOriginalDoc: false,
     ignoreProperties: true,
     imageStore: ImageStore.IMGUR.id,
-    showProgressModal: true, // Default to showing the modal
-    uploadWebImages: false, // Default to disabled for backward compatibility
-    convertMermaid: false, // Default to disabled
-    mermaidScale: 2, // 2x for crisp output on retina displays
+    showProgressModal: true,
+    uploadWebImages: false,
+    convertMermaid: false,
+    mermaidScale: 2,
     mermaidTheme: "default",
     language: "zh",
+    autoUpload: false,
+    autoUploadSizeLimit: 30,
     imgurAnonymousSetting: {clientId: IMGUR_PLUGIN_CLIENT_ID},
     gyazoSetting: {
         accessToken: "",
@@ -138,7 +145,8 @@ export default class ObsidianPublish extends Plugin {
         // Create status bar item that will be used if modal is disabled
         this.statusBarItem = this.addStatusBarItem();
         this.setupImageUploader();
-        
+
+        // ── Command: publish page ──
         this.addCommand({
             id: "publish-page",
             name: this.translate.t("command.publishPage"),
@@ -149,6 +157,39 @@ export default class ObsidianPublish extends Plugin {
                 return true;
             }
         });
+
+        // ── Ribbon icon ──
+        this.addRibbonIcon("upload-cloud", this.translate.t("ribbon.title"), () => {
+            this.publish();
+        });
+
+        // ── File context menu ──
+        this.registerEvent(
+            this.app.workspace.on("file-menu", (menu, file) => {
+                if (!(file instanceof TFile)) return;
+                menu.addItem((item) => {
+                    item.setTitle(this.translate.t("contextMenu.uploadFile"))
+                        .setIcon("upload-cloud")
+                        .onClick(() => {
+                            this.uploadSingleFile(file).catch(err => {
+                                console.error("obsidian-file-upload: context menu upload failed", err);
+                            });
+                        });
+                });
+            })
+        );
+
+        // ── Auto-upload on file create ──
+        this.registerEvent(
+            this.app.vault.on("create", (file) => {
+                if (!this.settings.autoUpload) return;
+                if (!(file instanceof TFile)) return;
+                // Skip if the file is in the plugin directory
+                if (file.path.startsWith(".obsidian/")) return;
+                void this.handleAutoUpload(file);
+            })
+        );
+
         this.addSettingTab(new PublishSettingTab(this.app, this));
     }
 
@@ -183,14 +224,98 @@ export default class ObsidianPublish extends Plugin {
             this.imageUploader = buildUploader(this.settings);
             // Create ImageTagProcessor with the user's preference for modal vs status bar
             this.imageTagProcessor = new ImageTagProcessor(
-                this.app, 
-                this.settings, 
-                this.imageUploader, 
-                this.settings.showProgressModal, // Use modal based on setting
+                this.app,
+                this.settings,
+                this.imageUploader,
+                this.settings.showProgressModal,
                 this.translate,
             );
         } catch (e) {
             console.error(`Failed to setup image uploader: ${e}`)
         }
     }
+
+    // ── Upload a single file (for context menu & auto-upload) ──
+
+    /** Upload a single file to the configured cloud storage. */
+    async uploadSingleFile(file: TFile): Promise<string | null> {
+        if (!this.imageUploader) {
+            new Notice(this.translate.t("notice.uploaderSetupFailed"));
+            return null;
+        }
+
+        // Check file type support
+        const ext = file.extension.toLowerCase();
+        if (!this.imageUploader.supportsFileType(ext)) {
+            new Notice(this.translate.t("notice.fileTypeNotSupported").replace("{ext}", ext));
+            return null;
+        }
+
+        try {
+            const buf = await this.app.vault.readBinary(file);
+            const uploadFile = new File([buf], file.name);
+            const url = await this.imageUploader.upload(uploadFile, file.path);
+            new Notice(this.translate.t("notice.uploadSuccess").replace("{url}", url));
+            return url;
+        } catch (err) {
+            console.error("obsidian-file-upload: upload failed", err);
+            new Notice(this.translate.t("notice.uploadFailed").replace("{path}", file.path).replace("{error}", errorMessage(err)), 8000);
+            return null;
+        }
+    }
+
+    /** Handle auto-upload when a new file is created in the vault. */
+    private async handleAutoUpload(file: TFile): Promise<void> {
+        // Size check
+        const maxBytes = this.settings.autoUploadSizeLimit * 1024 * 1024;
+        if (file.stat.size > maxBytes) return;
+
+        // Check file type support
+        const ext = file.extension.toLowerCase();
+        if (!this.imageUploader || !this.imageUploader.supportsFileType(ext)) return;
+
+        const url = await this.uploadSingleFile(file);
+        if (!url) return;
+
+        // For images, try to replace the reference in the current document
+        const imageExts = new Set(["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "tiff", "tif", "ico", "apng", "avif", "heic", "heif"]);
+        if (imageExts.has(ext)) {
+            await this.replaceImageRefInActiveDoc(file, url);
+        }
+    }
+
+    /** Replace local image references in the active document with the remote URL. */
+    private async replaceImageRefInActiveDoc(file: TFile, url: string): Promise<void> {
+        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!activeView) return;
+
+        const editor = activeView.editor;
+        const docContent = editor.getValue();
+
+        // Match wiki-link format: ![[file.png]] or ![[file.png|alt]]
+        const wikiPattern = new RegExp(`!\\[\\[${escapeRegex(file.name)}(\\|[^\\]]*)?\\]\\]`, "g");
+        // Match markdown format: ![alt](file.png) or ![alt](file "title")
+        const mdPattern = new RegExp(`!\\[[^\\]]*\\]\\(${escapeRegex(file.name)}(\\s+"[^"]*")?\\)`, "g");
+
+        let newContent = docContent;
+        let replaced = false;
+
+        if (wikiPattern.test(docContent)) {
+            newContent = docContent.replace(wikiPattern, `![${file.name}](${url})`);
+            replaced = true;
+        } else if (mdPattern.test(docContent)) {
+            newContent = docContent.replace(mdPattern, `![${file.name}](${url})`);
+            replaced = true;
+        }
+
+        if (replaced) {
+            if (this.settings.replaceOriginalDoc) {
+                editor.setValue(newContent);
+            }
+        }
+    }
+}
+
+function escapeRegex(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

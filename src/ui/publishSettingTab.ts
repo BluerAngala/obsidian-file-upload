@@ -88,6 +88,29 @@ export default class PublishSettingTab extends PluginSettingTab {
                     .onChange(value => this.plugin.settings.uploadWebImages = value)
             );
 
+        // ── Auto Upload ──
+        new Setting(containerEl).setName(t("settings.autoUpload.heading")).setHeading();
+
+        new Setting(containerEl)
+            .setName(t("settings.autoUpload.enable.name"))
+            .setDesc(t("settings.autoUpload.enable.desc"))
+            .addToggle(toggle =>
+                toggle
+                    .setValue(this.plugin.settings.autoUpload)
+                    .onChange(value => this.plugin.settings.autoUpload = value)
+            );
+
+        new Setting(containerEl)
+            .setName(t("settings.autoUpload.sizeLimit.name"))
+            .setDesc(t("settings.autoUpload.sizeLimit.desc"))
+            .addSlider(slider =>
+                slider
+                    .setLimits(1, 100, 1)
+                    .setValue(this.plugin.settings.autoUploadSizeLimit)
+                    .setDynamicTooltip()
+                    .onChange(value => this.plugin.settings.autoUploadSizeLimit = value)
+            );
+
         // ── Mermaid ──
         new Setting(containerEl).setName(t("settings.mermaid.heading")).setHeading();
 

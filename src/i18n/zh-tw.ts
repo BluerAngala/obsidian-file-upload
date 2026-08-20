@@ -32,6 +32,17 @@ const zhTw: typeof en = {
                 desc: "啟用後，網路圖片（http/https 連結）將被下載並重新上傳到您設定的儲存服務。已託管在您儲存服務上的圖片將被跳過。",
             },
         },
+        autoUpload: {
+            heading: "自動上傳",
+            enable: {
+                name: "啟用自動上傳",
+                desc: "當檔案新增到筆記時自動上傳到雲端（圖片、影片、音訊等）。僅支援的檔案類型會被上傳。",
+            },
+            sizeLimit: {
+                name: "檔案大小限制 (MB)",
+                desc: "自動上傳的最大檔案大小（1–100 MB）。預設 30 MB。",
+            },
+        },
         mermaid: {
             heading: "Mermaid",
             convert: {
@@ -343,6 +354,16 @@ const zhTw: typeof en = {
         mermaidRendering: "正在渲染 {count} 個 Mermaid 圖表...",
         mermaidInitFailed: "Mermaid 初始化失敗：{error}",
         mermaidRenderFailed: "渲染 Mermaid 區塊 {index} 失敗：{error}",
+        uploadSuccess: "上傳成功：{url}",
+        fileTypeNotSupported: "不支援的檔案類型：{ext}",
+    },
+
+    ribbon: {
+        title: "發佈頁面到雲端",
+    },
+
+    contextMenu: {
+        uploadFile: "上傳到雲端",
     },
 };
 

@@ -9,6 +9,14 @@ export default class ImagekitUploader implements ImageUploader {
         this.setting = setting;
     }
 
+    private static readonly IMAGE_EXTENSIONS = new Set([
+        "jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "tiff", "tif", "ico", "apng", "avif", "heic", "heif",
+    ]);
+
+    supportsFileType(extension: string): boolean {
+        return ImagekitUploader.IMAGE_EXTENSIONS.has(extension.toLowerCase());
+    }
+
     async upload(image: File, fullPath: string): Promise<string> {
         // Use Obsidian's requestUrl instead of the imagekit SDK.
         // The SDK uses Node.js native HTTP which conflicts with Obsidian's Electron sandbox,

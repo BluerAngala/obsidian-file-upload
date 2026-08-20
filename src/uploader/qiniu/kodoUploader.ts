@@ -16,6 +16,10 @@ export default class KodoUploader implements ImageUploader {
         this.setting = setting;
     }
 
+    supportsFileType(_extension: string): boolean {
+        return true;
+    }
+
     async upload(image: File, path: string): Promise<string> {
         //check custom domain name
         if (!this.setting.customDomainName || this.setting.customDomainName.trim() === "") {

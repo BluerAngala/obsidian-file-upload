@@ -11,6 +11,14 @@ export default class ImgurAnonymousUploader implements ImageUploader {
         this.clientId = clientId;
     }
 
+    private static readonly IMAGE_EXTENSIONS = new Set([
+        "jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "tiff", "tif", "ico", "apng", "avif", "heic", "heif",
+    ]);
+
+    supportsFileType(extension: string): boolean {
+        return ImgurAnonymousUploader.IMAGE_EXTENSIONS.has(extension.toLowerCase());
+    }
+
     async upload(image: File, path: string): Promise<string> {
         // Imgur /3/image accepts base64-encoded image bytes when the request
         // body is application/x-www-form-urlencoded with the `image` field.

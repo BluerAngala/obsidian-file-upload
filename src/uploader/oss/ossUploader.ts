@@ -30,6 +30,10 @@ export default class OssUploader implements ImageUploader {
         this.customDomainName = setting.customDomainName;
     }
 
+    supportsFileType(_extension: string): boolean {
+        return true;
+    }
+
     async upload(image: File, fullPath: string): Promise<string> {
         const key = UploaderUtils.generateName(this.pathTmpl, image.name).replace(/^\/+/, "");
         const body = await image.arrayBuffer();

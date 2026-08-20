@@ -32,6 +32,17 @@ const en = {
                 desc: "When enabled, web images (http/https URLs) are downloaded and re-uploaded to your configured storage. Images already hosted on your storage service are skipped.",
             },
         },
+        autoUpload: {
+            heading: "Auto Upload",
+            enable: {
+                name: "Enable auto upload",
+                desc: "Automatically upload files to cloud storage when they are added to your notes (images, videos, audio, etc.). Only supported file types will be uploaded.",
+            },
+            sizeLimit: {
+                name: "File size limit (MB)",
+                desc: "Maximum file size for auto upload (1–100 MB). Default is 30 MB.",
+            },
+        },
         mermaid: {
             heading: "Mermaid",
             convert: {
@@ -355,6 +366,16 @@ const en = {
         mermaidRendering: "Rendering {count} mermaid diagram(s)...",
         mermaidInitFailed: "Mermaid initialization failed: {error}",
         mermaidRenderFailed: "Failed to render mermaid block {index}: {error}",
+        uploadSuccess: "Upload successful: {url}",
+        fileTypeNotSupported: "File type not supported: {ext}",
+    },
+
+    ribbon: {
+        title: "Publish page to cloud",
+    },
+
+    contextMenu: {
+        uploadFile: "Upload to cloud",
     },
 };
 

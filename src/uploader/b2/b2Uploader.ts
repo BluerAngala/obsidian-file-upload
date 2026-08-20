@@ -33,6 +33,10 @@ export default class B2Uploader implements ImageUploader {
     this.customDomainName = setting.customDomainName;
   }
 
+  supportsFileType(_extension: string): boolean {
+    return true;
+  }
+
   async upload(image: File, fullPath: string): Promise<string> {
     const arrayBuffer = await image.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);

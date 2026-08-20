@@ -33,6 +33,10 @@ export default class CosUploader implements ImageUploader {
         this.secretKey = setting.secretKey;
     }
 
+    supportsFileType(_extension: string): boolean {
+        return true;
+    }
+
     async upload(image: File, fullPath: string): Promise<string> {
         const key = UploaderUtils.generateName(this.pathTmpl, image.name).replace(/^\/+/, "");
         const body = await image.arrayBuffer();

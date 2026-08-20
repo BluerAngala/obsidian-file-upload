@@ -32,6 +32,17 @@ const zh: typeof en = {
                 desc: "启用后，网络图片（http/https 链接）将被下载并重新上传到您配置的存储服务。已托管在您存储服务上的图片将被跳过。",
             },
         },
+        autoUpload: {
+            heading: "自动上传",
+            enable: {
+                name: "启用自动上传",
+                desc: "当文件添加到笔记时自动上传到云端（图片、视频、音频等）。仅支持的文件类型会被上传。",
+            },
+            sizeLimit: {
+                name: "文件大小限制 (MB)",
+                desc: "自动上传的最大文件大小（1–100 MB）。默认 30 MB。",
+            },
+        },
         mermaid: {
             heading: "Mermaid",
             convert: {
@@ -343,6 +354,16 @@ const zh: typeof en = {
         mermaidRendering: "正在渲染 {count} 个 Mermaid 图表...",
         mermaidInitFailed: "Mermaid 初始化失败：{error}",
         mermaidRenderFailed: "渲染 Mermaid 块 {index} 失败：{error}",
+        uploadSuccess: "上传成功：{url}",
+        fileTypeNotSupported: "不支持的文件类型：{ext}",
+    },
+
+    ribbon: {
+        title: "发布页面到云端",
+    },
+
+    contextMenu: {
+        uploadFile: "上传到云端",
     },
 };
 

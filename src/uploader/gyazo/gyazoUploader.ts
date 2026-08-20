@@ -22,6 +22,14 @@ export default class GyazoUploader implements ImageUploader {
         this.setting = setting;
     }
 
+    private static readonly IMAGE_EXTENSIONS = new Set([
+        "jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "tiff", "tif", "ico", "apng", "avif", "heic", "heif",
+    ]);
+
+    supportsFileType(extension: string): boolean {
+        return GyazoUploader.IMAGE_EXTENSIONS.has(extension.toLowerCase());
+    }
+
     async upload(image: File, fullPath: string): Promise<string> {
         const boundary = "----ObsidianGyazo" + Date.now().toString(36);
         const body = await this.buildMultipartBody(boundary, image, fullPath);

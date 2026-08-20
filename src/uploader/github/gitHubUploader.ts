@@ -22,6 +22,10 @@ export default class GitHubUploader implements ImageUploader {
     this.path = setting.path;
   }
 
+  supportsFileType(_extension: string): boolean {
+    return true;
+  }
+
   upload(image: File, fullPath: string): Promise<string> {
     const result: Promise<string> = this.uploadQueue.then(
       async (): Promise<string> => await this.uploadFile(image, fullPath),
