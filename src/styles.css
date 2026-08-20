@@ -109,3 +109,101 @@
 .upload-progress-modal .image-name {
     font-size: var(--font-ui-small);
 }
+
+/* ── Settings tabs ─────────────────────────────────────────────────────── */
+
+.iuf-settings .iuf-tab-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--background-modifier-border);
+    margin-bottom: 16px;
+}
+
+.iuf-settings .iuf-tab-btn {
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: var(--font-ui-small);
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.15s, border-color 0.15s;
+    user-select: none;
+}
+
+.iuf-settings .iuf-tab-btn:hover {
+    color: var(--text-normal);
+}
+
+.iuf-settings .iuf-tab-btn.active {
+    color: var(--text-accent);
+    border-bottom-color: var(--text-accent);
+    font-weight: var(--font-semibold);
+}
+
+/* ── Welcome page ──────────────────────────────────────────────────────── */
+
+.iuf-welcome-hero {
+    text-align: center;
+    padding: 24px 0 16px;
+}
+
+.iuf-welcome-hero h2 {
+    margin: 0 0 8px;
+    font-size: 1.4em;
+}
+
+.iuf-welcome-hero p {
+    color: var(--text-muted);
+    margin: 0;
+    font-size: var(--font-ui-small);
+}
+
+.iuf-welcome-setup {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.iuf-welcome-setup h3 {
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-semibold);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 16px 0 8px;
+}
+
+.iuf-welcome-actions {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.iuf-btn-primary {
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: var(--radius-s);
+    padding: 8px 32px;
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-semibold);
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.iuf-btn-primary:hover {
+    opacity: 0.85;
+}
+
+.iuf-welcome-hint {
+    text-align: center;
+    padding: 8px 0;
+}
+
+.iuf-welcome-hint p {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-faint);
+    margin: 0;
+}
+
+.iuf-welcome-provider {
+    margin-top: 8px;
+}

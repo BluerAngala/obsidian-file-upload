@@ -6,6 +6,20 @@ const en = {
 
     // Settings page
     settings: {
+        tabs: {
+            welcome: "Welcome",
+            general: "General",
+            upload: "Upload",
+            mermaid: "Mermaid",
+            imageStore: "Image Store",
+        },
+        welcome: {
+            title: "Welcome to File Upload",
+            subtitle: "Upload local images and files to your cloud storage with one click. Supports 10+ providers.",
+            quickSetup: "Quick Setup",
+            getStarted: "Get Started",
+            usageHint: "After setup, use the ribbon icon or Cmd+P → 'Publish page' to upload. Right-click any file to upload individually.",
+        },
         general: {
             heading: "General",
             imageAltText: {

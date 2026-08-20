@@ -6,6 +6,20 @@ const zh: typeof en = {
     },
 
     settings: {
+        tabs: {
+            welcome: "欢迎",
+            general: "通用",
+            upload: "上传",
+            mermaid: "Mermaid",
+            imageStore: "图床",
+        },
+        welcome: {
+            title: "欢迎使用文件上传",
+            subtitle: "一键将本地图片和文件上传到云端存储，支持 10+ 种存储服务。",
+            quickSetup: "快速设置",
+            getStarted: "开始使用",
+            usageHint: "设置完成后，使用左侧菜单栏图标或命令面板（Cmd+P → 发布页面）上传。右键点击文件可单独上传。",
+        },
         general: {
             heading: "通用",
             imageAltText: {

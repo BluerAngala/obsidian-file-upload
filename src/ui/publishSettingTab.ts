@@ -5,24 +5,101 @@ import {AliYunRegionList} from "../uploader/oss/common";
 import {TencentCloudRegionList} from "../uploader/cos/common";
 import type {Language} from "../i18n/translate";
 
+type TabId = "welcome" | "general" | "upload" | "mermaid" | "imageStore";
+
 export default class PublishSettingTab extends PluginSettingTab {
     private plugin: ObsidianPublish;
     private imageStoreDiv: HTMLDivElement;
+    private activeTab: TabId = "welcome";
 
     constructor(app: App, plugin: ObsidianPublish) {
         super(app, plugin);
         this.plugin = plugin;
+        // First install → show welcome tab; otherwise show general
+        this.activeTab = plugin.settings.installedVersion ? "general" : "welcome";
     }
 
-    display(): unknown {
+    display(): void {
         const {containerEl} = this;
-        containerEl.empty()
+        containerEl.empty();
+        containerEl.addClass("iuf-settings");
         this.plugin.settings.imageStore = ImageStore.normalizeId(this.plugin.settings.imageStore);
 
         const t = this.plugin.translate.t.bind(this.plugin.translate);
 
-        // ── Language ──
-        new Setting(containerEl)
+        // ── Tab bar ──
+        const tabBar = containerEl.createDiv({cls: "iuf-tab-bar"});
+        const tabs: {id: TabId; label: string}[] = [
+            {id: "welcome", label: t("settings.tabs.welcome")},
+            {id: "general", label: t("settings.tabs.general")},
+            {id: "upload", label: t("settings.tabs.upload")},
+            {id: "mermaid", label: t("settings.tabs.mermaid")},
+            {id: "imageStore", label: t("settings.tabs.imageStore")},
+        ];
+
+        // Hide welcome tab after first install
+        const visibleTabs = this.plugin.settings.installedVersion
+            ? tabs.filter(tab => tab.id !== "welcome")
+            : tabs;
+
+        const tabButtons: Map<TabId, HTMLDivElement> = new Map();
+        for (const tab of visibleTabs) {
+            const btn = tabBar.createDiv({cls: "iuf-tab-btn", text: tab.label});
+            if (tab.id === this.activeTab) btn.addClass("active");
+            btn.addEventListener("click", () => {
+                this.activeTab = tab.id;
+                tabButtons.forEach((b, id) => b.toggleClass("active", id === tab.id));
+                this.renderTabContent(contentEl);
+            });
+            tabButtons.set(tab.id, btn);
+        }
+
+        // ── Content ──
+        const contentEl = containerEl.createDiv({cls: "iuf-tab-content"});
+        this.renderTabContent(contentEl);
+    }
+
+    hide(): void {
+        // Mark as installed when user closes settings (even without clicking "Get Started")
+        if (!this.plugin.settings.installedVersion) {
+            this.plugin.settings.installedVersion = this.plugin.manifest?.version || "1.0.0";
+        }
+        void this.plugin.saveSettings().then(() => {
+            this.plugin.setupImageUploader();
+        }).catch(err => {
+            console.error("obsidian-file-upload: saveSettings failed", err);
+        });
+    }
+
+    // ── Tab rendering ──────────────────────────────────────────────────────
+
+    private renderTabContent(el: HTMLDivElement): void {
+        el.empty();
+        switch (this.activeTab) {
+            case "welcome": this.renderWelcome(el); break;
+            case "general": this.renderGeneral(el); break;
+            case "upload": this.renderUpload(el); break;
+            case "mermaid": this.renderMermaid(el); break;
+            case "imageStore": this.renderImageStore(el); break;
+        }
+    }
+
+    // ── Welcome ──
+
+    private renderWelcome(el: HTMLDivElement): void {
+        const t = this.t.bind(this);
+
+        // Hero
+        const hero = el.createDiv({cls: "iuf-welcome-hero"});
+        new Setting(hero).setName(t("settings.welcome.title")).setHeading();
+        hero.createEl("p", {text: t("settings.welcome.subtitle")});
+
+        // Quick setup section
+        const setup = el.createDiv({cls: "iuf-welcome-setup"});
+        new Setting(setup).setName(t("settings.welcome.quickSetup")).setHeading();
+
+        // Language selector
+        new Setting(setup)
             .setName(t("settings.language.name"))
             .setDesc(t("settings.language.desc"))
             .addDropdown(dd => {
@@ -37,10 +114,68 @@ export default class PublishSettingTab extends PluginSettingTab {
                 });
             });
 
-        // ── General ──
-        ;
+        // Image store selector
+        new Setting(setup)
+            .setName(t("settings.imageStore.select.name"))
+            .setDesc(t("settings.imageStore.select.desc"))
+            .addDropdown(dd => {
+                ImageStore.lists.forEach(s => {
+                    const providerKey = `settings.imageStore.providers.${s.id}`;
+                    dd.addOption(s.id, t(providerKey));
+                });
+                dd.setValue(this.plugin.settings.imageStore);
+                dd.onChange(async (v) => {
+                    this.plugin.settings.imageStore = v;
+                    this.plugin.setupImageUploader();
+                    this.display();
+                });
+            });
 
-        new Setting(containerEl)
+        // Provider-specific config inline
+        const providerDiv = setup.createDiv({cls: "iuf-welcome-provider"});
+        this.imageStoreDiv = providerDiv;
+        void this.drawImageStoreSettings(providerDiv);
+
+        // Get started button
+        const btnRow = el.createDiv({cls: "iuf-welcome-actions"});
+        const btn = btnRow.createEl("button", {
+            text: t("settings.welcome.getStarted"),
+            cls: "iuf-btn-primary",
+        });
+        btn.addEventListener("click", () => {
+            this.plugin.settings.installedVersion = this.plugin.manifest?.version || "1.0.0";
+            void this.plugin.saveSettings();
+            // Switch to general tab
+            this.activeTab = "general";
+            this.display();
+        });
+
+        // Usage hint
+        const hint = el.createDiv({cls: "iuf-welcome-hint"});
+        hint.createEl("p", {text: t("settings.welcome.usageHint")});
+    }
+
+    // ── General ──
+
+    private renderGeneral(el: HTMLDivElement): void {
+        const t = this.t.bind(this);
+
+        new Setting(el)
+            .setName(t("settings.language.name"))
+            .setDesc(t("settings.language.desc"))
+            .addDropdown(dd => {
+                dd.addOption("zh", "中文");
+                dd.addOption("en", "English");
+                dd.addOption("zh-tw", "繁體中文");
+                dd.setValue(this.plugin.settings.language);
+                dd.onChange(async (v: Language) => {
+                    this.plugin.settings.language = v;
+                    this.plugin.translate.switch(v);
+                    this.display();
+                });
+            });
+
+        new Setting(el)
             .setName(t("settings.general.imageAltText.name"))
             .setDesc(t("settings.general.imageAltText.desc"))
             .addToggle(toggle =>
@@ -49,7 +184,7 @@ export default class PublishSettingTab extends PluginSettingTab {
                     .onChange(value => this.plugin.settings.imageAltText = value)
             );
 
-        new Setting(containerEl)
+        new Setting(el)
             .setName(t("settings.general.replaceOriginalDoc.name"))
             .setDesc(t("settings.general.replaceOriginalDoc.desc"))
             .addToggle(toggle =>
@@ -58,7 +193,7 @@ export default class PublishSettingTab extends PluginSettingTab {
                     .onChange(value => this.plugin.settings.replaceOriginalDoc = value)
             );
 
-        new Setting(containerEl)
+        new Setting(el)
             .setName(t("settings.general.ignoreProperties.name"))
             .setDesc(t("settings.general.ignoreProperties.desc"))
             .addToggle(toggle =>
@@ -66,11 +201,14 @@ export default class PublishSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.ignoreProperties)
                     .onChange(value => this.plugin.settings.ignoreProperties = value)
             );
+    }
 
-        // ── Upload ──
-        new Setting(containerEl).setName(t("settings.upload.heading")).setHeading();
+    // ── Upload ──
 
-        new Setting(containerEl)
+    private renderUpload(el: HTMLDivElement): void {
+        const t = this.t.bind(this);
+
+        new Setting(el)
             .setName(t("settings.upload.showProgressModal.name"))
             .setDesc(t("settings.upload.showProgressModal.desc"))
             .addToggle(toggle =>
@@ -79,7 +217,7 @@ export default class PublishSettingTab extends PluginSettingTab {
                     .onChange(value => this.plugin.settings.showProgressModal = value)
             );
 
-        new Setting(containerEl)
+        new Setting(el)
             .setName(t("settings.upload.uploadWebImages.name"))
             .setDesc(t("settings.upload.uploadWebImages.desc"))
             .addToggle(toggle =>
@@ -89,9 +227,9 @@ export default class PublishSettingTab extends PluginSettingTab {
             );
 
         // ── Auto Upload ──
-        new Setting(containerEl).setName(t("settings.autoUpload.heading")).setHeading();
+        new Setting(el).setName(t("settings.autoUpload.heading")).setHeading();
 
-        new Setting(containerEl)
+        new Setting(el)
             .setName(t("settings.autoUpload.enable.name"))
             .setDesc(t("settings.autoUpload.enable.desc"))
             .addToggle(toggle =>
@@ -100,7 +238,7 @@ export default class PublishSettingTab extends PluginSettingTab {
                     .onChange(value => this.plugin.settings.autoUpload = value)
             );
 
-        new Setting(containerEl)
+        new Setting(el)
             .setName(t("settings.autoUpload.sizeLimit.name"))
             .setDesc(t("settings.autoUpload.sizeLimit.desc"))
             .addSlider(slider =>
@@ -110,11 +248,14 @@ export default class PublishSettingTab extends PluginSettingTab {
                     .setDynamicTooltip()
                     .onChange(value => this.plugin.settings.autoUploadSizeLimit = value)
             );
+    }
 
-        // ── Mermaid ──
-        new Setting(containerEl).setName(t("settings.mermaid.heading")).setHeading();
+    // ── Mermaid ──
 
-        new Setting(containerEl)
+    private renderMermaid(el: HTMLDivElement): void {
+        const t = this.t.bind(this);
+
+        new Setting(el)
             .setName(t("settings.mermaid.convert.name"))
             .setDesc(t("settings.mermaid.convert.desc"))
             .addToggle(toggle =>
@@ -123,7 +264,7 @@ export default class PublishSettingTab extends PluginSettingTab {
                     .onChange(value => this.plugin.settings.convertMermaid = value)
             );
 
-        new Setting(containerEl)
+        new Setting(el)
             .setName(t("settings.mermaid.scale.name"))
             .setDesc(t("settings.mermaid.scale.desc"))
             .addSlider(slider =>
@@ -134,7 +275,7 @@ export default class PublishSettingTab extends PluginSettingTab {
                     .onChange(value => this.plugin.settings.mermaidScale = value)
             );
 
-        new Setting(containerEl)
+        new Setting(el)
             .setName(t("settings.mermaid.theme.name"))
             .setDesc(t("settings.mermaid.theme.desc"))
             .addDropdown(dd => {
@@ -149,12 +290,15 @@ export default class PublishSettingTab extends PluginSettingTab {
                 dd.setValue(this.plugin.settings.mermaidTheme);
                 dd.onChange(value => this.plugin.settings.mermaidTheme = value);
             });
+    }
 
-        // ── Image Store ──
-        new Setting(containerEl).setName(t("settings.imageStore.heading")).setHeading();
+    // ── Image Store ──
 
-        const imageStoreTypeDiv = containerEl.createDiv();
-        this.imageStoreDiv = containerEl.createDiv();
+    private renderImageStore(el: HTMLDivElement): void {
+        const t = this.t.bind(this);
+
+        const imageStoreTypeDiv = el.createDiv();
+        this.imageStoreDiv = el.createDiv();
 
         new Setting(imageStoreTypeDiv)
             .setName(t("settings.imageStore.select.name"))
@@ -174,13 +318,7 @@ export default class PublishSettingTab extends PluginSettingTab {
         void this.drawImageStoreSettings(this.imageStoreDiv);
     }
 
-    hide(): void {
-        void this.plugin.saveSettings().then(() => {
-            this.plugin.setupImageUploader();
-        }).catch(err => {
-            console.error("Image upload toolkit: saveSettings failed", err);
-        });
-    }
+    // ── Provider settings ──────────────────────────────────────────────────
 
     private async drawImageStoreSettings(parentEL: HTMLDivElement) {
         parentEL.empty();
@@ -216,9 +354,7 @@ export default class PublishSettingTab extends PluginSettingTab {
                 this.drawB2Setting(parentEL);
                 break;
             default:
-                throw new Error(
-                    "Should not reach here!"
-                )
+                throw new Error("Should not reach here!")
         }
     }
 
@@ -395,15 +531,13 @@ export default class PublishSettingTab extends PluginSettingTab {
     }
 
     private drawAwsS3Setting(parentEL: HTMLDivElement) {
-        // Add AWS S3 configuration section
         new Setting(parentEL)
             .setName(this.t("settings.imageStore.awsS3.accessKeyId.name"))
             .setDesc(this.t("settings.imageStore.awsS3.accessKeyId.desc"))
             .addText(text => text
                 .setPlaceholder(this.t("settings.imageStore.awsS3.accessKeyId.placeholder"))
                 .setValue(this.plugin.settings.awsS3Setting?.accessKeyId || '')
-                .onChange(value => this.plugin.settings.awsS3Setting.accessKeyId = value
-                ));
+                .onChange(value => this.plugin.settings.awsS3Setting.accessKeyId = value));
 
         new Setting(parentEL)
             .setName(this.t("settings.imageStore.awsS3.secretAccessKey.name"))
@@ -437,7 +571,6 @@ export default class PublishSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.awsS3Setting.path)
                     .onChange(value => this.plugin.settings.awsS3Setting.path = value))
 
-        //custom domain
         new Setting(parentEL)
             .setName(this.t("settings.imageStore.awsS3.customDomain.name"))
             .setDesc(this.t("settings.imageStore.awsS3.customDomain.desc"))
@@ -494,7 +627,6 @@ export default class PublishSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.cosSetting.path)
                     .onChange(value => this.plugin.settings.cosSetting.path = value))
 
-        //custom domain
         new Setting(parentEL)
             .setName(this.t("settings.imageStore.cos.customDomain.name"))
             .setDesc(this.t("settings.imageStore.cos.customDomain.desc"))
@@ -531,7 +663,6 @@ export default class PublishSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.kodoSetting.bucket)
                     .onChange(value => this.plugin.settings.kodoSetting.bucket = value))
 
-        //custom domain
         new Setting(parentEL)
             .setName(this.t("settings.imageStore.qiniu.customDomain.name"))
             .setDesc(this.t("settings.imageStore.qiniu.customDomain.desc"))
@@ -589,8 +720,7 @@ export default class PublishSettingTab extends PluginSettingTab {
             .addText(text => text
                 .setPlaceholder(this.t("settings.imageStore.r2.accessKeyId.placeholder"))
                 .setValue(this.plugin.settings.r2Setting?.accessKeyId || '')
-                .onChange(value => this.plugin.settings.r2Setting.accessKeyId = value
-                ));
+                .onChange(value => this.plugin.settings.r2Setting.accessKeyId = value));
 
         new Setting(parentEL)
             .setName(this.t("settings.imageStore.r2.secretAccessKey.name"))
@@ -625,7 +755,6 @@ export default class PublishSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.r2Setting.path)
                     .onChange(value => this.plugin.settings.r2Setting.path = value));
 
-        //custom domain
         new Setting(parentEL)
             .setName(this.t("settings.imageStore.r2.customDomain.name"))
             .setDesc(this.t("settings.imageStore.r2.customDomain.desc"))
@@ -643,8 +772,7 @@ export default class PublishSettingTab extends PluginSettingTab {
             .addText(text => text
                 .setPlaceholder(this.t("settings.imageStore.b2.accessKeyId.placeholder"))
                 .setValue(this.plugin.settings.b2Setting?.accessKeyId || '')
-                .onChange(value => this.plugin.settings.b2Setting.accessKeyId = value
-                ));
+                .onChange(value => this.plugin.settings.b2Setting.accessKeyId = value));
 
         new Setting(parentEL)
             .setName(this.t("settings.imageStore.b2.secretAccessKey.name"))
@@ -679,7 +807,6 @@ export default class PublishSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.b2Setting.path)
                     .onChange(value => this.plugin.settings.b2Setting.path = value));
 
-        //custom domain
         new Setting(parentEL)
             .setName(this.t("settings.imageStore.b2.customDomain.name"))
             .setDesc(this.t("settings.imageStore.b2.customDomain.desc"))

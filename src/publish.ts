@@ -38,6 +38,8 @@ export interface PublishSettings {
     // Auto-upload settings
     autoUpload: boolean;
     autoUploadSizeLimit: number; // in MB
+    // First-install tracking (empty string = first install)
+    installedVersion: string;
     //Imgur Anonymous setting
     imgurAnonymousSetting: ImgurAnonymousSetting;
     gyazoSetting: GyazoSetting;
@@ -64,6 +66,7 @@ const DEFAULT_SETTINGS: PublishSettings = {
     language: "zh",
     autoUpload: false,
     autoUploadSizeLimit: 30,
+    installedVersion: "",
     imgurAnonymousSetting: {clientId: IMGUR_PLUGIN_CLIENT_ID},
     gyazoSetting: {
         accessToken: "",
@@ -191,6 +194,16 @@ export default class ObsidianPublish extends Plugin {
         );
 
         this.addSettingTab(new PublishSettingTab(this.app, this));
+
+        // ── First-install: auto-open settings ──
+        if (!this.settings.installedVersion) {
+            this.app.workspace.onLayoutReady(() => {
+                // @ts-expect-error - openTabById is available but not typed
+                this.app.setting.open();
+                // @ts-expect-error - openTabById is available but not typed
+                this.app.setting.openTabById(this.manifest.id);
+            });
+        }
     }
 
     onunload() {
