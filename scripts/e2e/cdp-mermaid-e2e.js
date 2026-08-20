@@ -3,7 +3,7 @@
 // What it does:
 //   - Creates a temp note containing a mermaid code fence.
 //   - Configures Aliyun OSS as the backing store (adjust if needed).
-//   - Runs the `image-upload-toolkit:publish-page` command.
+//   - Runs the `obsidian-file-upload:publish-page` command.
 //   - Asserts the clipboard output contains an uploaded PNG URL and that
 //     the original mermaid fence has been replaced.
 //   - Cleans up the temp note.
@@ -18,8 +18,8 @@
 (async () => {
   const STORE_ID = "ALIYUN_OSS";  // adjust to whichever store you have creds for
 
-  const plugin = app.plugins.plugins["image-upload-toolkit"];
-  if (!plugin) throw new Error("image-upload-toolkit plugin not loaded");
+  const plugin = app.plugins.plugins["obsidian-file-upload"];
+  if (!plugin) throw new Error("obsidian-file-upload plugin not loaded");
 
   const origSettings = JSON.parse(JSON.stringify(plugin.settings));
   plugin.settings.imageStore = STORE_ID;
@@ -37,7 +37,7 @@
     await new Promise(r => setTimeout(r, 500));
 
     await navigator.clipboard.writeText("");
-    const ok = app.commands.executeCommandById("image-upload-toolkit:publish-page");
+    const ok = app.commands.executeCommandById("obsidian-file-upload:publish-page");
     if (!ok) throw new Error("publish-page command failed to execute");
 
     // Wait for upload to finish (poll clipboard)

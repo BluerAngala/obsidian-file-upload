@@ -26,7 +26,7 @@ These are intentionally **not** wired into CI — they hit real buckets and requ
 
 ```bash
 # Inline expression
-./scripts/e2e/cdp.sh 'app.plugins.plugins["image-upload-toolkit"].manifest.version'
+./scripts/e2e/cdp.sh 'app.plugins.plugins["obsidian-file-upload"].manifest.version'
 
 # Load a script file
 ./scripts/e2e/cdp.sh "$(cat scripts/e2e/cdp-e2e-all.js)"
@@ -54,17 +54,17 @@ After copying a new build into the vault, hot-reload the plugin:
 
 ```bash
 ./scripts/e2e/cdp.sh '(async () => {
-  await app.plugins.disablePlugin("image-upload-toolkit");
-  await app.plugins.enablePlugin("image-upload-toolkit");
-  return app.plugins.plugins["image-upload-toolkit"].manifest.version;
+  await app.plugins.disablePlugin("obsidian-file-upload");
+  await app.plugins.enablePlugin("obsidian-file-upload");
+  return app.plugins.plugins["obsidian-file-upload"].manifest.version;
 })()'
 ```
 
 ## Footguns
 
-- **`require("obsidian")` and dynamic `import()` of the bundle don't work** inside the CDP expression — `obsidian` is an esbuild external and resolves to nothing at runtime in this context. Use the plugin instance (`app.plugins.plugins["image-upload-toolkit"]`) for everything you need from the API.
+- **`require("obsidian")` and dynamic `import()` of the bundle don't work** inside the CDP expression — `obsidian` is an esbuild external and resolves to nothing at runtime in this context. Use the plugin instance (`app.plugins.plugins["obsidian-file-upload"]`) for everything you need from the API.
 - **`editor.setValue()` does NOT persist to disk.** When asserting on `replaceOriginalDoc` behavior, read `leaf.view.editor.getValue()`, not `app.vault.read(file)`.
-- **Commands are `checkCallback`-based.** Use `app.commands.executeCommandById("image-upload-toolkit:publish-page")`. Don't call `.callback` directly.
+- **Commands are `checkCallback`-based.** Use `app.commands.executeCommandById("obsidian-file-upload:publish-page")`. Don't call `.callback` directly.
 - **Progress modal is async.** Don't query it once — poll `activeDocument.querySelector(".modal.upload-progress-modal")` for a few hundred ms after triggering publish.
 - **macOS TCC blocks `~/Documents`** for non-Obsidian processes. Place test vaults under `~/iCloud Drive/` or another accessible location.
 

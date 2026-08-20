@@ -1,4 +1,4 @@
-// Multi-store upload smoke test for image-upload-toolkit.
+// Multi-store upload smoke test for obsidian-file-upload.
 //
 // What it does:
 //   - Iterates a list of ImageStore IDs configured in the running vault.
@@ -19,8 +19,8 @@
 //     identify and prune from your bucket after the run.
 
 (async () => {
-  const plugin = app.plugins.plugins["image-upload-toolkit"];
-  if (!plugin) throw new Error("image-upload-toolkit plugin not loaded");
+  const plugin = app.plugins.plugins["obsidian-file-upload"];
+  if (!plugin) throw new Error("obsidian-file-upload plugin not loaded");
 
   const originalStore = plugin.settings.imageStore;
 

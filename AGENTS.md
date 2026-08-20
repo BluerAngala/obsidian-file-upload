@@ -1,6 +1,8 @@
-# Obsidian Image Upload Toolkit
+# obsidian-file-upload
 
-An Obsidian plugin for uploading local images to multiple cloud storage providers (Imgur, Gyazo, GitHub, AWS S3, Aliyun OSS, TencentCloud COS, Qiniu Kodo, ImageKit, Cloudflare R2, Backblaze B2). Also supports automatic mermaid diagram conversion to images during publish.
+An Obsidian plugin for uploading local images to multiple cloud storage providers (Imgur, Gyazo, GitHub, AWS S3, Aliyun OSS, TencentCloud COS, Qiniu Kodo, ImageKit, Cloudflare R2, Backblaze B2). Also supports automatic mermaid diagram conversion to images during publish, with multi-language support (中文/English/繁體中文).
+
+Fork of [Obsidian Image Upload Toolkit](https://github.com/addozhang/obsidian-image-upload-toolkit). Enhanced with i18n and other improvements.
 
 ## Project Overview
 
@@ -22,6 +24,11 @@ src/
 ├── publish.ts                      # Main plugin entry point
 ├── imageStore.ts                   # Storage provider registry (with normalizeId() for legacy alias support)
 ├── styles.css                      # Plugin styles
+├── i18n/                           # Multi-language support
+│   ├── translate.ts                # Translation manager
+│   ├── zh.ts                       # Simplified Chinese
+│   ├── en.ts                       # English
+│   └── zh-tw.ts                    # Traditional Chinese
 ├── ui/
 │   ├── publishSettingTab.ts        # Settings UI
 │   └── uploadProgressModal.ts      # Progress display modal
@@ -48,40 +55,23 @@ src/
 ## Build & Commands
 
 ### Quick Start (one-time setup)
-1. Copy `.env.example` to `.env` and set your vault path:
-   ```bash
-   cp .env.example .env
-   # Edit .env: OBSIDIAN_VAULT_PATH=/path/to/your/obsidian-vault
-   ```
-2. In Obsidian, install **Hot-Reload** by **pjeby** from community plugins
+1. `cp .env.example .env` — 填写 `OBSIDIAN_VAULT_PATH`
+2. 在 Obsidian 安装 **Hot-Reload** (by pjeby)
 
 ### Development
 ```bash
 npm install              # Install dependencies
 npm run dev             # Watch mode → auto-build → auto-copy to vault
+npm run build           # Production build
+npm test                # Run all tests
+npm run test:watch      # Watch mode
+npm run test:coverage   # Coverage report
 ```
 
 When you run `npm run dev`:
 - `esbuild` watches for file changes and rebuilds automatically
 - Built files are **auto-copied** to the vault's plugin directory (if `OBSIDIAN_VAULT_PATH` is set in `.env`)
 - The **[Hot-Reload](https://github.com/pjeby/hot-reload)** plugin detects file changes and reloads the plugin automatically
-
-### Production Build
-```bash
-npm run build           # Single build + copy to vault (if configured)
-```
-
-### Manual Copy to Vault
-If you don't want auto-deploy, copy these files manually:
-```bash
-cp dist/main.js manifest.json src/styles.css ~/YourVault/.obsidian/plugins/image-upload-toolkit/
-```
-
-### Plugin Testing
-1. Build the plugin: `npm run build`
-2. If auto-deploy is configured, files are already in your vault
-3. If not, manually copy `main.js`, `manifest.json`, and `styles.css` to your vault's `.obsidian/plugins/image-upload-toolkit/` directory
-4. Reload Obsidian and enable the plugin
 
 ## Key Concepts
 
@@ -106,7 +96,7 @@ New providers are registered in [`ImageStore`](src/imageStore.ts) and instantiat
 6. **Output**: Updated markdown is copied to clipboard
 
 #### Mermaid Diagram Conversion (v1.3.0)
-- Converts mermaid code blocks (``` ```mermaid ``` ```) to PNG images during publish
+- Converts mermaid code blocks to PNG images during publish
 - Uses Obsidian's built-in `loadMermaid()` API (no bundled mermaid dependency)
 - Configurable scale factor (1-4x, default 2) for image quality
 - Configurable theme (default/dark/forest/neutral/base)
@@ -129,6 +119,12 @@ Support dynamic path generation using these variables:
 - `{random}` - Random string
 
 Example: `/{year}/{mon}/{day}/{filename}` → `/2024/01/17/image.jpg`
+
+### Multi-language Support
+- Languages: 中文 (Simplified Chinese), English, 繁體中文 (Traditional Chinese)
+- Language selection in settings page top dropdown
+- Switches language instantly on change
+- Covers: settings UI, progress modal, command names, Notice messages
 
 ## Code Style & Conventions
 
@@ -225,128 +221,7 @@ Current test files:
 
 ### End-to-End Testing via Chrome DevTools Protocol
 
-Unit tests can't catch Electron-specific runtime issues (e.g. Chromium rejecting an explicit `Host` header in `requestUrl`, which broke COS in the 1.6.2 release candidate). The repo ships a small suite of CDP-driven scripts under [`scripts/e2e/`](scripts/e2e/) that drive a **real Obsidian instance** to exercise the full publish flow against live cloud credentials.
-
-See [`scripts/e2e/README.md`](scripts/e2e/README.md) for the full workflow. Quick summary:
-
-1. Launch Obsidian with `--remote-debugging-port=9223` (e.g. `open -a Obsidian --args --remote-debugging-port=9223`).
-2. Install the built plugin into a test vault that has live credentials for the providers you want to exercise. macOS TCC blocks `~/Documents` for non-Obsidian processes; place the test vault under `~/iCloud Drive/` or another accessible location.
-3. Run a script via the helper:
-   ```bash
-   ./scripts/e2e/cdp.sh "$(cat scripts/e2e/cdp-e2e-all.js)"
-   ```
-
-The helper (`scripts/e2e/cdp.sh`) requires `websocat` and `python3` on `PATH`. The expression runs in the Obsidian renderer with full access to `app`, `app.plugins.plugins["image-upload-toolkit"]`, `app.vault`, `app.commands.executeCommandById(...)`, `navigator.clipboard`, and `activeDocument`.
-
-Footguns worth knowing without opening the README:
-
-- `require("obsidian")` and dynamic `import()` of the bundle don't work inside CDP — `obsidian` is an esbuild external and resolves to nothing at runtime in this context. Use the plugin instance.
-- `editor.setValue()` does NOT persist to disk. When asserting on `replaceOriginalDoc`, read `leaf.view.editor.getValue()`, not `app.vault.read(file)`.
-- Commands are `checkCallback`-based — use `app.commands.executeCommandById(...)`, not `.callback()`.
-- The progress modal opens asynchronously; poll `activeDocument.querySelector(".modal.upload-progress-modal")` for a few hundred ms.
-
-The scripts upload to **real buckets**. They prefix sentinel filenames (`iut-*`, `__iut-*`), snapshot/restore `plugin.settings`, and delete temp notes via `app.vault.delete(file)`.
-
-### Manual Testing Checklist
-
-1. Test each storage provider with sample images
-2. Verify path variable substitution works correctly
-3. Test with different image formats (PNG, JPG, GIF, SVG, WebP)
-4. Verify progress modal and status bar indicators
-5. Test with relative paths (`./`, `../`)
-6. Check error handling for invalid credentials
-7. Verify clipboard copy functionality
-8. Test mermaid conversion with various diagram types (flowchart, sequence, class, etc.)
-9. Verify mermaid scale factor produces correct image resolution (1x-4x)
-10. Verify mermaid theme setting applies correctly (default/dark/forest/neutral/base)
-11. Confirm mermaid source blocks are preserved when "Update original document" is enabled
-12. Verify mermaid-generated images are not double-uploaded when "Upload web images" is enabled
-13. Verify wiki-link image syntax (`![[image.png]]`) is uploaded and rewritten
-14. Verify `ignoreProperties` strips YAML frontmatter from the clipboard output when enabled
-15. Verify `imageAltText` populates alt text from the original filename when enabled
-
-## Common Issues & Solutions
-
-### Image Upload Failures
-- **Check credentials**: Verify API keys/tokens are correct in settings
-- **Check permissions**: Ensure storage bucket has proper read/write permissions
-- **Check network**: Test with simple curl/postman requests first
-- **Check file paths**: Use absolute paths for debugging
-
-### Build Issues
-- Clear `node_modules/` and reinstall: `rm -rf node_modules && npm install`
-- Ensure TypeScript version matches: `npm ls typescript`
-- Check Obsidian API version compatibility
-
-### Adding Dependencies
-```bash
-npm install <package>           # Runtime dependency
-npm install -D <package>        # Dev dependency
-```
-
-Update [`package.json`](package.json) dependencies and run `npm install`.
-
-## Security Considerations
-
-- **API Keys**: Never commit API keys or tokens to git
-- **Credentials**: Store credentials in Obsidian's data.json (auto-encrypted)
-- **HTTPS**: Always use HTTPS endpoints for cloud providers
-- **Minimal Permissions**: Request only necessary permissions for storage access
-
-## Git Workflow
-
-### Commit Messages
-Follow conventional commit format:
-- `feat:` New features
-- `fix:` Bug fixes
-- `docs:` Documentation changes
-- `refactor:` Code refactoring
-- `chore:` Maintenance tasks
-
-### Branch Strategy
-- `main` - Stable releases
-- Feature branches: `feature/add-provider-x`
-- Bug fixes: `fix/issue-123`
-
-### Pull Request Guidelines
-- Update README.md with new features
-- Ensure code builds without errors
-- Test with multiple storage providers
-- Include clear description of changes
-
-## Release Process
-
-**IMPORTANT**: When creating a new release tag, you MUST update the version in both files to match the tag version:
-
-1. **Update version in [`package.json`](package.json)**:
-   ```json
-   {
-     "version": "1.2.0"
-   }
-   ```
-
-2. **Update version in [`manifest.json`](manifest.json)**:
-   ```json
-   {
-     "version": "1.2.0"
-   }
-   ```
-
-3. **Commit the version changes**:
-   ```bash
-   git add package.json manifest.json
-   git commit -m "chore: bump version to 1.2.0"
-   ```
-
-4. **Create git tag with descriptive message** (without `v` prefix):
-   ```bash
-   git tag -a 1.2.0 -m "Release 1.2.0 - Brief description of changes"
-   git push origin 1.2.0
-   ```
-
-**Version Format**: Use semantic versioning without the `v` prefix (e.g., `1.2.0`, not `v1.2.0`). The version must be identical in both `package.json` and `manifest.json`.
-
-**Tag Message Format**: Use the format "Release X.Y.Z - Brief description" (e.g., "Release 1.1.4 - Fix relative path resolution" or "add CloudFlare R2 support"). Keep it concise and describe the key changes.
+See [`scripts/e2e/README.md`](scripts/e2e/README.md) for the full workflow.
 
 ## Dependencies
 
@@ -367,9 +242,10 @@ Follow conventional commit format:
 
 ## Plugin Configuration
 
-Settings are stored in `.obsidian/plugins/image-upload-toolkit/data.json`:
+Settings are stored in `.obsidian/plugins/obsidian-file-upload/data.json`:
 ```json
 {
+  "language": "zh",
   "imageAltText": true,
   "replaceOriginalDoc": false,
   "ignoreProperties": true,
@@ -380,19 +256,8 @@ Settings are stored in `.obsidian/plugins/image-upload-toolkit/data.json`:
   "mermaidScale": 2,
   "mermaidTheme": "default",
   "imgurAnonymousSetting": { "clientId": "..." },
-  "gyazoSetting": {
-    "accessToken": "...",
-    "accessPolicy": "anyone",
-    "description": ""
-  },
-  "b2Setting": {
-    "keyId": "...",
-    "applicationKey": "...",
-    "bucketId": "...",
-    "bucketName": "...",
-    "customDomain": ""
-  },
-  // ... other provider-specific settings
+  "gyazoSetting": { "accessToken": "...", "accessPolicy": "anyone", "description": "" },
+  "b2Setting": { "keyId": "...", "applicationKey": "...", "bucketId": "...", "bucketName": "...", "customDomain": "" }
 }
 ```
 
@@ -417,6 +282,7 @@ Settings are stored in `.obsidian/plugins/image-upload-toolkit/data.json`:
 - Individual provider implementations in `src/uploader/*/`
 - UI components in `src/ui/`
 - Utility functions in `src/uploader/uploaderUtils.ts`
+- Translation files in `src/i18n/`
 - Web image downloader in `src/uploader/webImageDownloader.ts`
 - Mermaid processor in `src/uploader/mermaidProcessor.ts`
 
@@ -426,6 +292,6 @@ Settings are stored in `.obsidian/plugins/image-upload-toolkit/data.json`:
 - [Obsidian API Reference](https://github.com/obsidianmd/obsidian-api)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/intro.html)
 
-## Current Version
+## Author
 
-1.6.2 — Refactored all SDK-heavy uploaders (OSS, COS, Qiniu, S3, R2, B2) to use Obsidian's `requestUrl` API with inline signing; migrated AWS-family uploaders to `@aws-sdk/client-s3` v3; reduced bundle size from ~16 MB to ~644 KB; fixed Imgur anonymous upload payload encoding; fixed COS upload regression caused by explicit `Host` header rejection in Electron's `requestUrl`.
+**BluerAngala**

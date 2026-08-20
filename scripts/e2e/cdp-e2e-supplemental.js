@@ -1,4 +1,4 @@
-// Comprehensive supplementary E2E suite for image-upload-toolkit.
+// Comprehensive supplementary E2E suite for obsidian-file-upload.
 //
 // Covers 13 cases:
 //   1.  Settings panel renders without throwing (and headings aren't ALL CAPS)
@@ -34,8 +34,8 @@
   const STORE_ID       = "ALIYUN_OSS";  // canonical ID from src/imageStore.ts
   const BUCKET_HOST_RE = /oss-cn-hangzhou\.aliyuncs\.com/;  // regex matching uploaded URL host
 
-  const plugin = app.plugins.plugins["image-upload-toolkit"];
-  if (!plugin) throw new Error("image-upload-toolkit plugin not loaded");
+  const plugin = app.plugins.plugins["obsidian-file-upload"];
+  if (!plugin) throw new Error("obsidian-file-upload plugin not loaded");
 
   const origSettings = JSON.parse(JSON.stringify(plugin.settings));
   const results = [];
@@ -66,7 +66,7 @@
 
   const runPublishAndGetClip = async (timeoutMs = 30000) => {
     await navigator.clipboard.writeText("");
-    app.commands.executeCommandById("image-upload-toolkit:publish-page");
+    app.commands.executeCommandById("obsidian-file-upload:publish-page");
     const start = Date.now();
     let clip = "";
     while (Date.now() - start < timeoutMs) {
@@ -83,7 +83,7 @@
   try {
     const tab = app.setting;
     tab.open();
-    tab.openTabById("image-upload-toolkit");
+    tab.openTabById("obsidian-file-upload");
     await new Promise(r => setTimeout(r, 600));
     const container = tab.activeTab?.containerEl;
     const settingItems = container?.querySelectorAll(".setting-item")?.length || 0;
@@ -104,7 +104,7 @@
     await createNote(`__iut-modal-${Date.now()}.md`,
       "# modal test\n\n![web](https://placehold.co/3x3.png)\n");
     await navigator.clipboard.writeText("");
-    app.commands.executeCommandById("image-upload-toolkit:publish-page");
+    app.commands.executeCommandById("obsidian-file-upload:publish-page");
     let modalSeen = false;
     let modalTitle = null;
     let modalClasses = null;

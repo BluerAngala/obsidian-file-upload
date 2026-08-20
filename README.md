@@ -247,7 +247,7 @@ The plugin will contact one of the following hostnames depending on which storag
 
 ### Credentials & data handling
 
-- API keys, tokens, and secrets you enter are stored in Obsidian's plugin data file (`.obsidian/plugins/image-upload-toolkit/data.json`) on your device only.
+- API keys, tokens, and secrets you enter are stored in Obsidian's plugin data file (`.obsidian/plugins/obsidian-file-upload/data.json`) on your device only.
 - Credentials are sent only to the corresponding storage service's official endpoint, using the request signing required by that service.
 - The plugin does not transmit your note contents to any service beyond the images you upload.
 
@@ -332,8 +332,8 @@ The plugin will contact one of the following hostnames depending on which storag
 
 ### Development Setup
 ```bash
-git clone https://github.com/addozhang/obsidian-image-upload-toolkit.git
-cd obsidian-image-upload-toolkit
+git clone https://github.com/BluerAngala/obsidian-file-upload.git
+cd obsidian-file-upload
 npm install
 npm run dev
 ```
@@ -405,9 +405,9 @@ This plugin was inspired by the powerful markdown editor [MWeb Pro](https://www.
 
 <div align="center">
 
-**Made with ❤️ by [Addo Zhang](https://github.com/addozhang)**
+**Made with ❤️ by [BluerAngala](https://github.com/BluerAngala)**
 
-[🌟 Star this repo](https://github.com/addozhang/obsidian-image-upload-toolkit) | [🐛 Report Issues](https://github.com/addozhang/obsidian-image-upload-toolkit/issues) | [📖 Documentation](https://github.com/addozhang/obsidian-image-upload-toolkit#readme)
+[🌟 Star this repo](https://github.com/BluerAngala/obsidian-file-upload) | [🐛 Report Issues](https://github.com/BluerAngala/obsidian-file-upload/issues) | [📖 Documentation](https://github.com/BluerAngala/obsidian-file-upload#readme)
 
 *Seamlessly upload and manage images for your Obsidian notes across multiple cloud platforms*
 

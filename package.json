@@ -1,8 +1,8 @@
 {
-  "name": "obsidian-image-upload-toolkit",
+  "name": "obsidian-file-upload",
   "version": "1.6.7",
-  "description": "",
-  "author": "addozhang",
+  "description": "Upload local images to cloud storage with multi-language support",
+  "author": "BluerAngala",
   "main": "main.js",
   "license": "MIT",
   "scripts": {

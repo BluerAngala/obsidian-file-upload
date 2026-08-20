@@ -22,7 +22,7 @@ if (existsSync(envPath)) {
 const vaultPath = env.OBSIDIAN_VAULT_PATH || "";
 
 // ── Plugin directory inside vault ─────────────────────────────────────────
-const pluginDir = vaultPath ? `${vaultPath}/.obsidian/plugins/image-upload-toolkit` : "";
+const pluginDir = vaultPath ? `${vaultPath}/.obsidian/plugins/obsidian-file-upload` : "";
 
 // ── Copy files to vault ───────────────────────────────────────────────────
 async function deploy() {
