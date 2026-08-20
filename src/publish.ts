@@ -20,6 +20,7 @@ import type {GitHubSetting} from "./uploader/github/gitHubUploader";
 import type {R2Setting} from "./uploader/r2/r2Uploader";
 import type {B2Setting} from "./uploader/b2/b2Uploader";
 import type {GyazoSetting} from "./uploader/gyazo/gyazoUploader";
+import Translate, {type Language} from "./i18n/translate";
 
 export interface PublishSettings {
     imageAltText: boolean;
@@ -31,6 +32,7 @@ export interface PublishSettings {
     convertMermaid: boolean; // Convert mermaid code blocks to PNG images on publish
     mermaidScale: number; // Canvas scale factor for mermaid PNG export (1–4, default 2)
     mermaidTheme: string; // Mermaid render theme: default, dark, forest, neutral, base
+    language: Language; // Display language
     //Imgur Anonymous setting
     imgurAnonymousSetting: ImgurAnonymousSetting;
     gyazoSetting: GyazoSetting;
@@ -54,6 +56,7 @@ const DEFAULT_SETTINGS: PublishSettings = {
     convertMermaid: false, // Default to disabled
     mermaidScale: 2, // 2x for crisp output on retina displays
     mermaidTheme: "default",
+    language: "zh",
     imgurAnonymousSetting: {clientId: IMGUR_PLUGIN_CLIENT_ID},
     gyazoSetting: {
         accessToken: "",
@@ -127,16 +130,18 @@ export default class ObsidianPublish extends Plugin {
     imageTagProcessor: ImageTagProcessor;
     imageUploader: ImageUploader;
     statusBarItem: HTMLElement;
+    translate: Translate;
 
     async onload() {
         await this.loadSettings();
+        this.translate = new Translate(this.settings.language);
         // Create status bar item that will be used if modal is disabled
         this.statusBarItem = this.addStatusBarItem();
         this.setupImageUploader();
         
         this.addCommand({
             id: "publish-page",
-            name: "Publish page",
+            name: this.translate.t("command.publishPage"),
             checkCallback: (checking: boolean) => {
                 if (!checking) {
                     this.publish()
@@ -164,11 +169,11 @@ export default class ObsidianPublish extends Plugin {
 
     private publish(): void {
         if (!this.imageUploader) {
-            new Notice("Image uploader setup failed, please check setting.")
+            new Notice(this.translate.t("notice.uploaderSetupFailed"))
         } else {
             this.imageTagProcessor.process(ACTION_PUBLISH).catch((err: unknown) => {
                 console.error("Image upload toolkit: publish failed", err);
-                new Notice(`Publish failed: ${errorMessage(err)}`, 8000);
+                new Notice(this.translate.t("notice.publishFailed").replace("{error}", errorMessage(err)), 8000);
             });
         }
     }
@@ -182,6 +187,7 @@ export default class ObsidianPublish extends Plugin {
                 this.settings, 
                 this.imageUploader, 
                 this.settings.showProgressModal, // Use modal based on setting
+                this.translate,
             );
         } catch (e) {
             console.error(`Failed to setup image uploader: ${e}`)

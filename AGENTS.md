@@ -47,17 +47,41 @@ src/
 
 ## Build & Commands
 
+### Quick Start (one-time setup)
+1. Copy `.env.example` to `.env` and set your vault path:
+   ```bash
+   cp .env.example .env
+   # Edit .env: OBSIDIAN_VAULT_PATH=/path/to/your/obsidian-vault
+   ```
+2. In Obsidian, install **Hot-Reload** by **pjeby** from community plugins
+
 ### Development
 ```bash
 npm install              # Install dependencies
-npm run dev             # Watch mode with hot reload
-npm run build           # Production build
+npm run dev             # Watch mode → auto-build → auto-copy to vault
+```
+
+When you run `npm run dev`:
+- `esbuild` watches for file changes and rebuilds automatically
+- Built files are **auto-copied** to the vault's plugin directory (if `OBSIDIAN_VAULT_PATH` is set in `.env`)
+- The **[Hot-Reload](https://github.com/pjeby/hot-reload)** plugin detects file changes and reloads the plugin automatically
+
+### Production Build
+```bash
+npm run build           # Single build + copy to vault (if configured)
+```
+
+### Manual Copy to Vault
+If you don't want auto-deploy, copy these files manually:
+```bash
+cp dist/main.js manifest.json src/styles.css ~/YourVault/.obsidian/plugins/image-upload-toolkit/
 ```
 
 ### Plugin Testing
 1. Build the plugin: `npm run build`
-2. Copy `main.js`, `manifest.json`, and `styles.css` to your vault's `.obsidian/plugins/image-upload-toolkit/` directory
-3. Reload Obsidian and enable the plugin
+2. If auto-deploy is configured, files are already in your vault
+3. If not, manually copy `main.js`, `manifest.json`, and `styles.css` to your vault's `.obsidian/plugins/image-upload-toolkit/` directory
+4. Reload Obsidian and enable the plugin
 
 ## Key Concepts
 

@@ -1,9 +1,11 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import UploadProgressModal from "../../src/ui/uploadProgressModal";
+import Translate from "../../src/i18n/translate";
 
 function makeModal(): UploadProgressModal {
     const app = {} as any;
-    const m = new UploadProgressModal(app);
+    const translate = new Translate("en");
+    const m = new UploadProgressModal(app, translate);
     return m;
 }
 

@@ -1,6 +1,7 @@
 import {loadMermaid, Notice} from "obsidian";
 import ImageUploader from "./imageUploader";
 import {errorMessage} from "./errorUtils";
+import Translate from "../i18n/translate";
 
 interface MermaidInstance {
     initialize(config: { startOnLoad?: boolean; theme?: string }): void;
@@ -26,11 +27,13 @@ export default class MermaidProcessor {
     private mermaidInstance: MermaidInstance | null = null;
     private scale: number;
     private theme: string;
+    private translate: Translate;
 
-    constructor(uploader: ImageUploader, scale: number = 2, theme: string = "default") {
+    constructor(uploader: ImageUploader, scale: number = 2, theme: string = "default", translate: Translate) {
         this.uploader = uploader;
         this.scale = Math.max(1, Math.min(4, Math.round(scale)));
         this.theme = VALID_THEMES.includes(theme) ? theme : "default";
+        this.translate = translate;
     }
 
     private async ensureMermaid(): Promise<MermaidInstance> {
@@ -46,13 +49,13 @@ export default class MermaidProcessor {
         const matches = [...value.matchAll(MERMAID_REGEX)];
         if (matches.length === 0) return { value, generatedUrls };
 
-        new Notice(`Rendering ${matches.length} mermaid diagram(s)...`);
+        new Notice(this.translate.t("notice.mermaidRendering").replace("{count}", String(matches.length)));
 
         let mermaid: MermaidInstance;
         try {
             mermaid = await this.ensureMermaid();
         } catch (e) {
-            const msg = `Mermaid initialization failed: ${errorMessage(e)}`;
+            const msg = this.translate.t("notice.mermaidInitFailed").replace("{error}", errorMessage(e));
             console.error(`MermaidProcessor: ${msg}`);
             new Notice(msg, 8000);
             return { value, generatedUrls };
@@ -72,7 +75,7 @@ export default class MermaidProcessor {
                 generatedUrls.add(url);
                 value = value.replace(match[0], `![mermaid](${url})`);
             } catch (e) {
-                const msg = `Failed to render mermaid block ${i + 1}: ${errorMessage(e)}`;
+                const msg = this.translate.t("notice.mermaidRenderFailed").replace("{index}", String(i + 1)).replace("{error}", errorMessage(e));
                 console.warn(`MermaidProcessor: ${msg}`);
                 new Notice(msg, 8000);
                 value = value.replace(match[0], `<!-- mermaid render failed: block ${i + 1} -->`);

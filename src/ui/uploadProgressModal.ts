@@ -1,4 +1,5 @@
 import {App, Modal, setIcon} from "obsidian";
+import Translate from "../i18n/translate";
 
 interface NamedImage {
     name?: string;
@@ -18,10 +19,12 @@ export default class UploadProgressModal extends Modal {
     private statusEl: HTMLElement;
     private imageStatus: Map<string, UploadStatus> = new Map();
     private autoCloseTimer: number | null = null;
+    private translate: Translate;
 
-    constructor(app: App) {
+    constructor(app: App, translate: Translate) {
         super(app);
-        this.titleEl.setText("Uploading images");
+        this.translate = translate;
+        this.titleEl.setText(this.translate.t("progressModal.title"));
     }
 
     onClose(): void {
@@ -64,7 +67,7 @@ export default class UploadProgressModal extends Modal {
         this.statusEl = progressSection.createDiv({cls: "status-indicator"});
         const statusIconContainer = this.statusEl.createSpan({cls: "status-icon"});
         setIcon(statusIconContainer, "upload-cloud");
-        this.statusEl.createSpan({text: "Uploading...", cls: "status-text"});
+        this.statusEl.createSpan({text: this.translate.t("progressModal.uploading"), cls: "status-text"});
         
         // Progress bar container
         const progressBarContainer = progressSection.createDiv({cls: "progress-bar-container"});
@@ -77,7 +80,7 @@ export default class UploadProgressModal extends Modal {
         // Image list (if we have image names)
         if (this.imageStatus.size > 0) {
             const imageListContainer = contentEl.createDiv({cls: "image-list-container"});
-            imageListContainer.createDiv({cls: "image-list-heading", text: "Images"});
+            imageListContainer.createDiv({cls: "image-list-heading", text: this.translate.t("progressModal.images")});
             this.imageListEl = imageListContainer.createDiv({cls: "image-list"});
             this.renderImageList();
         }
@@ -121,7 +124,7 @@ export default class UploadProgressModal extends Modal {
             const statusIconContainer = this.statusEl.createSpan({cls: "status-icon"});
             if (this.failureCount === 0) {
                 setIcon(statusIconContainer, "check");
-                this.statusEl.createSpan({text: "Complete", cls: "status-text"});
+                this.statusEl.createSpan({text: this.translate.t("progressModal.complete"), cls: "status-text"});
                 this.statusEl.classList.remove("has-failures");
                 // Auto-close after 3 seconds only on full success
                 this.autoCloseTimer = activeWindow.setTimeout(() => {
@@ -130,12 +133,12 @@ export default class UploadProgressModal extends Modal {
                 }, 3000);
             } else if (this.successCount === 0) {
                 setIcon(statusIconContainer, "x-circle");
-                this.statusEl.createSpan({text: "Failed", cls: "status-text"});
+                this.statusEl.createSpan({text: this.translate.t("progressModal.failed"), cls: "status-text"});
                 this.statusEl.classList.add("has-failures");
             } else {
                 setIcon(statusIconContainer, "alert-triangle");
                 this.statusEl.createSpan({
-                    text: `Completed with errors (${this.failureCount} failed)`,
+                    text: this.translate.t("progressModal.completedWithErrors").replace("{count}", String(this.failureCount)),
                     cls: "status-text",
                 });
                 this.statusEl.classList.add("has-failures");
@@ -162,11 +165,11 @@ export default class UploadProgressModal extends Modal {
         if (!this.summaryEl) return;
         this.summaryEl.empty();
         const okSpan = this.summaryEl.createSpan({cls: "summary-success"});
-        okSpan.setText(`${this.successCount} succeeded`);
+        okSpan.setText(this.translate.t("progressModal.succeeded").replace("{count}", String(this.successCount)));
         if (this.failureCount > 0) {
             this.summaryEl.createSpan({text: " · ", cls: "summary-sep"});
             const failSpan = this.summaryEl.createSpan({cls: "summary-failed"});
-            failSpan.setText(`${this.failureCount} failed`);
+            failSpan.setText(this.translate.t("progressModal.failedCount").replace("{count}", String(this.failureCount)));
         }
     }
 

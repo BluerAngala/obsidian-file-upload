@@ -7,6 +7,7 @@ import {WebImageDownloader} from "./webImageDownloader";
 import MermaidProcessor from "./mermaidProcessor";
 import ImageStore from "../imageStore";
 import {errorMessage} from "./errorUtils";
+import Translate from "../i18n/translate";
 
 export const MD_REGEX = /!\[([^\]]*)\]\(([^)]*)\)/g;
 export const WIKI_REGEX = /!\[\[([^\]|#]*\.(png|jpg|jpeg|gif|svg|webp|excalidraw))(#[^\]|]*)?(\|[^\]]*)?\]\]/gi;
@@ -86,13 +87,15 @@ export default class ImageTagProcessor {
     private adapter: FileSystemAdapter;
     private progressModal: UploadProgressModal | null = null;
     private readonly useModal: boolean = true; // Set to true to use modal, false to use status bar
+    private readonly translate: Translate;
 
-    constructor(app: App, settings: PublishSettings, imageUploader: ImageUploader, useModal: boolean = true) {
+    constructor(app: App, settings: PublishSettings, imageUploader: ImageUploader, useModal: boolean = true, translate: Translate) {
         this.app = app;
         this.adapter = this.app.vault.adapter as FileSystemAdapter;
         this.settings = settings;
         this.imageUploader = imageUploader;
         this.useModal = useModal;
+        this.translate = translate;
     }
 
     public async process(action: string): Promise<void> {
@@ -102,7 +105,7 @@ export default class ImageTagProcessor {
         // Convert mermaid code blocks to images if enabled
         let mermaidUrls = new Set<string>();
         if (this.settings.convertMermaid) {
-            const mermaidProcessor = new MermaidProcessor(this.imageUploader, this.settings.mermaidScale, this.settings.mermaidTheme);
+            const mermaidProcessor = new MermaidProcessor(this.imageUploader, this.settings.mermaidScale, this.settings.mermaidTheme, this.translate);
             const result = await mermaidProcessor.process(value);
             value = result.value;
             mermaidUrls = result.generatedUrls;
@@ -113,7 +116,7 @@ export default class ImageTagProcessor {
         
         // Initialize progress display
         if (this.useModal && images.length > 0) {
-            this.progressModal = new UploadProgressModal(this.app);
+            this.progressModal = new UploadProgressModal(this.app, this.translate);
             this.progressModal.open();
             this.progressModal.initialize(images);
         }
@@ -142,7 +145,7 @@ export default class ImageTagProcessor {
                         if (this.progressModal) {
                             this.progressModal.updateProgress(image.name, false);
                         }
-                        const errorMessageText = `Upload web image ${image.path} failed: ${errorMessage(e)}`;
+                        const errorMessageText = this.translate.t("notice.webImageUploadFailed").replace("{path}", image.path).replace("{error}", errorMessage(e));
                         new Notice(errorMessageText, 10000);
                         console.error('Web image upload error:', e);
                         throw new Error(errorMessageText);
@@ -153,7 +156,7 @@ export default class ImageTagProcessor {
             
             // Handle local images
             if (this.app.vault.getAbstractFileByPath(normalizePath(image.path)) == null) {
-                new Notice(`Can NOT locate ${image.name} with ${image.path}, please check image path or attachment option in plugin setting!`, 10000);
+                new Notice(this.translate.t("notice.cannotLocate").replace("{name}", image.name).replace("{path}", image.path), 10000);
                 console.warn(`${normalizePath(image.path)} not exist`);
                 // Update the progress modal with the failure
                 if (this.progressModal) {
@@ -179,14 +182,14 @@ export default class ImageTagProcessor {
                             if (this.progressModal) {
                                 this.progressModal.updateProgress(image.name, false);
                             }
-                            const errorMessageText = `Upload ${image.path} failed, remote server returned an error: ${errorMessage(e)}`;
+                            const errorMessageText = this.translate.t("notice.uploadFailed").replace("{path}", image.path).replace("{error}", errorMessage(e));
                             new Notice(errorMessageText, 10000);
                             reject(new Error(errorMessageText));
                         });
                 }));
             } catch (error) {
                 console.error(`Failed to read file: ${image.path}`, error);
-                new Notice(`Failed to read file: ${image.path}`, 5000);
+                new Notice(this.translate.t("notice.failedToReadFile").replace("{path}", image.path), 5000);
             }
         }
 
@@ -249,7 +252,7 @@ export default class ImageTagProcessor {
         switch (action) {
             case ACTION_PUBLISH:
                 await navigator.clipboard.writeText(value);
-                new Notice("Copied to clipboard");
+                new Notice(this.translate.t("notice.copiedToClipboard"));
                 break;
             default:
                 throw new Error("invalid action!");
