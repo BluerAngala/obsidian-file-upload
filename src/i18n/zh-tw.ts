@@ -444,6 +444,63 @@ const zhTw: typeof en = {
                     desc: "在上傳前移除 GPS 座標、相機資訊等 EXIF 標籤。",
                 },
             },
+            platformFormat: {
+                heading: "平台格式",
+                select: {
+                    name: "輸出平台預設",
+                    desc: "對剪貼簿裡的 Markdown 套用後處理，讓它在目標平台正確渲染。",
+                },
+                options: {
+                    "default": "預設（不處理）",
+                    "wechat-mp": "微信公眾號",
+                    "zhihu": "知乎",
+                    "juejin": "掘金",
+                },
+            },
+            perFolder: {
+                heading: "按資料夾覆寫",
+                add: {
+                    name: "新增規則",
+                    desc: "為指定資料夾下的檔案覆寫圖床、CDN、路徑或平台。",
+                    button: "新增規則",
+                },
+                empty: "暫無規則。點擊上方新增一條覆寫規則。",
+                rule: {
+                    pattern: {
+                        name: "資料夾匹配模式",
+                        desc: "Glob 風格路徑，如 assets/**、daily/*，或 * 匹配全部。",
+                    },
+                    store: {
+                        name: "圖床",
+                        desc: "覆寫圖床。留空使用預設。",
+                        useDefault: "使用預設",
+                    },
+                    cdn: {
+                        name: "CDN id",
+                        desc: "覆寫 CDN（如 jsdelivr）。僅在同時設定了圖床時生效。",
+                    },
+                    path: {
+                        name: "路徑樣板",
+                        desc: "覆寫上傳路徑。支援重新命名規則的變數。",
+                    },
+                    platform: {
+                        name: "平台格式",
+                        desc: "為該資料夾下的檔案覆寫平台後處理。",
+                    },
+                    delete: "刪除規則",
+                },
+            },
+        },
+        uploadLog: {
+            heading: "最近上傳",
+            summary: {
+                name: "統計",
+                desc: "成功 {success} · 失敗 {failed} · 跳過 {skipped}（僅在記憶體中，重啟 Obsidian 後清空）",
+            },
+            refresh: "重新整理",
+            clear: "清空日誌",
+            empty: "暫無上傳記錄。最近 1000 條上傳會顯示在這裡。",
+            skippedReason: "被跳過規則過濾。",
         },
     },
 

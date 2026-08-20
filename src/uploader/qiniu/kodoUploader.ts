@@ -2,6 +2,8 @@ import {requestUrl} from "obsidian";
 import {createHmac} from "crypto";
 import ImageUploader from "../imageUploader";
 import {UploaderUtils} from "../uploaderUtils";
+import {applyCdn, encodePathSegments} from "../cdn";
+import type {CdnId} from "../cdn";
 
 const QINIU_UPLOAD_HOST = "https://upload.qiniup.com";
 const TOKEN_LIFETIME_SECONDS = 3600;
@@ -11,9 +13,11 @@ export default class KodoUploader implements ImageUploader {
     private uploadToken: string;
     private tokenExpireTime: number;
     private setting: KodoSetting;
+    private readonly cdnId: CdnId;
 
     constructor(setting: KodoSetting) {
         this.setting = setting;
+        this.cdnId = setting.cdnId || "qiniu-native";
     }
 
     supportsFileType(_extension: string): boolean {
@@ -48,7 +52,13 @@ export default class KodoUploader implements ImageUploader {
 
         const data = response.json as {key?: string};
         const returnedKey = data?.key ?? key;
-        return `${this.setting.customDomainName}/${returnedKey}`;
+        // Normalize the custom domain: strip trailing slashes so the
+        // resulting URL never ends up with a double slash.
+        const customDomain = this.setting.customDomainName.trim().replace(/\/+$/, "");
+        const storageUrl = `${customDomain}/${encodePathSegments(returnedKey)}`;
+        return applyCdn("QINIU_KUDO", storageUrl, this.cdnId, {
+            customDomain: this.setting.customDomainName,
+        });
     }
 
     updateToken(): void {

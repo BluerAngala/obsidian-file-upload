@@ -5,6 +5,10 @@ import {renderCompressionSection} from "./features/compressionTab";
 import {renderSkipRulesSection} from "./features/skipRulesTab";
 import {renderConcurrencySection} from "./features/concurrencyTab";
 import {renderExifSection} from "./features/exifTab";
+import {PLATFORMS} from "../../uploader/features/platformFormat";
+import type {PlatformId} from "../../uploader/features/platformFormat";
+import {renderPerFolderOverrideSection} from "./features/perFolderOverrideTab";
+import {renderUploadLogTab} from "./features/uploadLogTab";
 
 /**
  * Upload tab — the catch-all for everything related to the upload pipeline:
@@ -15,7 +19,10 @@ import {renderExifSection} from "./features/exifTab";
  *   • Tier 1 feature: image compression (max width / quality / format)
  *   • Tier 1 feature: skip rules (regex)
  *   • Tier 2 feature: concurrency
+ *   • Tier 2 feature: platform format
  *   • Tier 3 feature: EXIF strip
+ *   • Tier 3 feature: per-folder override
+ *   • Upload log (separate section)
  */
 export const renderUploadTab: TabRenderer = (el, ctx) => {
     const {plugin, t} = ctx;
@@ -69,4 +76,28 @@ export const renderUploadTab: TabRenderer = (el, ctx) => {
     // ── Tier 2 / 3 features ──
     renderConcurrencySection(el, ctx);
     renderExifSection(el, ctx);
+
+    // ── Platform format (Tier 2) ──
+    new Setting(el)
+        .setName(t.t("settings.features.platformFormat.heading"))
+        .setHeading();
+    new Setting(el)
+        .setName(t.t("settings.features.platformFormat.select.name"))
+        .setDesc(t.t("settings.features.platformFormat.select.desc"))
+        .addDropdown(dd => {
+            for (const p of PLATFORMS) {
+                const labelKey = `settings.features.platformFormat.options.${p.id}`;
+                dd.addOption(p.id, t.t(labelKey));
+            }
+            dd.setValue(plugin.settings.platformFormat);
+            dd.onChange(value => {
+                plugin.settings.platformFormat = value as PlatformId;
+            });
+        });
+
+    // ── Per-folder override (Tier 3) ──
+    renderPerFolderOverrideSection(el, ctx);
+
+    // ── Upload log section ──
+    void renderUploadLogTab(el, ctx);
 };

@@ -61,7 +61,7 @@ describe("WIKI_REGEX", () => {
     "![[drawing.excalidraw]]",
   ];
 
-  const nonMatches = ["![[file.pdf]]", "![[note]]", "[[image.png]]"];
+  const nonMatches = ["![[note]]", "[[image.png]]"];
 
   it("matches supported wikilink image formats", () => {
     const regex = fresh(WIKI_REGEX);

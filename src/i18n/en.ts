@@ -454,6 +454,63 @@ const en = {
                     desc: "Removes GPS coordinates, camera info, and other EXIF tags before upload.",
                 },
             },
+            platformFormat: {
+                heading: "Platform format",
+                select: {
+                    name: "Output platform preset",
+                    desc: "Apply post-processing to the clipboard markdown so it renders correctly on the target platform.",
+                },
+                options: {
+                    "default": "Default (no post-processing)",
+                    "wechat-mp": "WeChat Official Accounts (公众号)",
+                    "zhihu": "Zhihu (知乎)",
+                    "juejin": "Juejin (掘金)",
+                },
+            },
+            perFolder: {
+                heading: "Per-folder overrides",
+                add: {
+                    name: "Add a rule",
+                    desc: "Override the image store, CDN, path or platform for files inside a specific folder.",
+                    button: "Add rule",
+                },
+                empty: "No rules yet. Add one above to override the default behaviour for specific folders.",
+                rule: {
+                    pattern: {
+                        name: "Folder pattern",
+                        desc: "Glob-style pattern, e.g. `assets/**`, `daily/*`, or `*` for every path.",
+                    },
+                    store: {
+                        name: "Image store",
+                        desc: "Override the image store. Leave empty to use the default.",
+                        useDefault: "Use default",
+                    },
+                    cdn: {
+                        name: "CDN id",
+                        desc: "Override the CDN id (e.g. `jsdelivr`). Ignored if no image store is set.",
+                    },
+                    path: {
+                        name: "Path template",
+                        desc: "Override the upload path. Supports the same variables as the rename rules.",
+                    },
+                    platform: {
+                        name: "Platform format",
+                        desc: "Override the platform post-processor for files in this folder.",
+                    },
+                    delete: "Delete rule",
+                },
+            },
+        },
+        uploadLog: {
+            heading: "Recent uploads",
+            summary: {
+                name: "Summary",
+                desc: "Success: {success} · Failed: {failed} · Skipped: {skipped} (memory only — clears on Obsidian restart)",
+            },
+            refresh: "Refresh",
+            clear: "Clear log",
+            empty: "No uploads yet. The most recent 1000 uploads will be listed here.",
+            skippedReason: "Skipped by skip rules.",
         },
     },
 

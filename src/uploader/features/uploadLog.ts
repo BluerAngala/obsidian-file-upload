@@ -29,7 +29,25 @@ export interface UploadLogEntry {
 const MAX_ENTRIES = 1000;
 
 export class UploadLog {
+    private static _instance: UploadLog | null = null;
     private entries: UploadLogEntry[] = [];
+
+    /**
+     * Singleton accessor. The log is a process-wide concern (any uploader
+     * call could be invoked), so we keep a single shared list rather than
+     * threading an instance through the plugin.
+     */
+    static getInstance(): UploadLog {
+        if (!UploadLog._instance) {
+            UploadLog._instance = new UploadLog();
+        }
+        return UploadLog._instance;
+    }
+
+    /** Test-only: clear the cached singleton. */
+    static resetInstance(): void {
+        UploadLog._instance = null;
+    }
 
     add(entry: Omit<UploadLogEntry, "id">): void {
         const id = `${entry.timestamp}-${this.entries.length}`;

@@ -28,6 +28,7 @@ import {DEFAULT_COMPRESSION_OPTIONS, type CompressionOptions} from "./uploader/f
 import {DEFAULT_SKIP_RULES_OPTIONS, type SkipRulesOptions} from "./uploader/features/skipRules";
 import {DEFAULT_EXIF_OPTIONS, type ExifStripOptions} from "./uploader/features/exifStrip";
 import type {PlatformId} from "./uploader/features/platformFormat";
+import {DEFAULT_PER_FOLDER_RULES, type PerFolderRule} from "./uploader/features/perFolderOverride";
 
 export interface PublishSettings {
     imageAltText: boolean;
@@ -52,6 +53,7 @@ export interface PublishSettings {
     platformFormat: PlatformId;
     // Tier 3 features
     exifStrip: ExifStripOptions;
+    perFolderRules: PerFolderRule[];
     // First-install tracking (empty string = first install)
     installedVersion: string;
     //Imgur Anonymous setting
@@ -89,6 +91,7 @@ const DEFAULT_SETTINGS: PublishSettings = {
     platformFormat: "default",
     // Tier 3 features
     exifStrip: { ...DEFAULT_EXIF_OPTIONS },
+    perFolderRules: [...DEFAULT_PER_FOLDER_RULES],
     installedVersion: "",
     imgurAnonymousSetting: {clientId: IMGUR_PLUGIN_CLIENT_ID},
     gyazoSetting: {
@@ -264,6 +267,12 @@ export default class ObsidianPublish extends Plugin {
         this.settings.skipRules = Object.assign({} as PublishSettings["skipRules"], DEFAULT_SETTINGS.skipRules, loadedData?.skipRules);
         this.settings.exifStrip = Object.assign({} as PublishSettings["exifStrip"], DEFAULT_SETTINGS.exifStrip, loadedData?.exifStrip);
         this.settings.githubSetting = Object.assign({} as PublishSettings["githubSetting"], DEFAULT_SETTINGS.githubSetting, loadedData?.githubSetting);
+        // Per-folder rules: replace wholesale if present in saved data,
+        // otherwise fall back to empty list. The array shape is versioned
+        // through DEFAULT_PER_FOLDER_RULES so partial merges don't apply.
+        this.settings.perFolderRules = Array.isArray(loadedData?.perFolderRules)
+            ? loadedData.perFolderRules
+            : [...DEFAULT_PER_FOLDER_RULES];
         // One-shot migration: existing users who still carry the pre-1.6.8
         // default of "github-raw" (i.e. they never picked a CDN themselves)
         // are switched to "jsdelivr" so out-of-the-box uploads get a fast

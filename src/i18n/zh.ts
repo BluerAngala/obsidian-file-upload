@@ -444,6 +444,63 @@ const zh: typeof en = {
                     desc: "在上传前移除 GPS 坐标、相机信息等 EXIF 标签。",
                 },
             },
+            platformFormat: {
+                heading: "平台格式",
+                select: {
+                    name: "输出平台预设",
+                    desc: "对剪贴板里的 Markdown 应用后处理，让它在目标平台正确渲染。",
+                },
+                options: {
+                    "default": "默认（不处理）",
+                    "wechat-mp": "微信公众号",
+                    "zhihu": "知乎",
+                    "juejin": "掘金",
+                },
+            },
+            perFolder: {
+                heading: "按文件夹覆盖",
+                add: {
+                    name: "新增规则",
+                    desc: "为指定文件夹下的文件覆盖图床、CDN、路径或平台。",
+                    button: "新增规则",
+                },
+                empty: "暂无规则。点击上方新增一条覆盖规则。",
+                rule: {
+                    pattern: {
+                        name: "文件夹匹配模式",
+                        desc: "Glob 风格路径，如 assets/**、daily/*，或 * 匹配全部。",
+                    },
+                    store: {
+                        name: "图床",
+                        desc: "覆盖图床。留空使用默认。",
+                        useDefault: "使用默认",
+                    },
+                    cdn: {
+                        name: "CDN id",
+                        desc: "覆盖 CDN（如 jsdelivr）。仅在同时设置了图床时生效。",
+                    },
+                    path: {
+                        name: "路径模板",
+                        desc: "覆盖上传路径。支持重命名规则的变量。",
+                    },
+                    platform: {
+                        name: "平台格式",
+                        desc: "为该文件夹下的文件覆盖平台后处理。",
+                    },
+                    delete: "删除规则",
+                },
+            },
+        },
+        uploadLog: {
+            heading: "最近上传",
+            summary: {
+                name: "统计",
+                desc: "成功 {success} · 失败 {failed} · 跳过 {skipped}（仅在内存中，重启 Obsidian 后清空）",
+            },
+            refresh: "刷新",
+            clear: "清空日志",
+            empty: "暂无上传记录。最近 1000 条上传会显示在这里。",
+            skippedReason: "被跳过规则过滤。",
         },
     },
 

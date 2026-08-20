@@ -8,9 +8,17 @@ import MermaidProcessor from "./mermaidProcessor";
 import ImageStore from "../imageStore";
 import {errorMessage} from "./errorUtils";
 import Translate from "../i18n/translate";
+import {ImageCompressor} from "./features/compression";
+import {ExifStripper} from "./features/exifStrip";
+import {RenameRules} from "./features/renameRules";
+import {SkipRules} from "./features/skipRules";
+import {UploadPool} from "./features/uploadQueue";
+import {applyPlatform} from "./features/platformFormat";
+import {UploadLog} from "./features/uploadLog";
+import {resolveConfigFor} from "./features/perFolderOverride";
 
 export const MD_REGEX = /!\[([^\]]*)\]\(([^)]*)\)/g;
-export const WIKI_REGEX = /!\[\[([^\]|#]*\.(png|jpg|jpeg|gif|svg|webp|excalidraw))(#[^\]|]*)?(\|[^\]]*)?\]\]/gi;
+export const WIKI_REGEX = /!\[\[([^\]|#]*\.(png|jpg|jpeg|gif|svg|webp|excalidraw|mp4|mov|webm|pdf|avif|apng|bmp|tiff|tif|ico|heic|heif))(#[^\]|]*)?(\|[^\]]*)?\]\]/gi;
 export const PROPERTIES_REGEX = /^---[\s\S]+?---\n/;
 
 export function isAlreadyHosted(url: string, settings: PublishSettings): boolean {
@@ -66,10 +74,16 @@ export function isAlreadyHosted(url: string, settings: PublishSettings): boolean
 
 interface Image {
     name: string;
+    /** Display name after compression / rename rules have been applied. */
+    displayName: string;
     path: string;
     url: string;
     source: string;
     isWebImage?: boolean; // Flag to indicate if this is a web image
+    /** File size in bytes, for skip-rules + log entries. */
+    sizeBytes?: number;
+    /** Source markdown after we rewrote the filename (e.g. for renamed files). */
+    rewrittenSource?: string;
 }
 
 // Return type for resolveImagePath method
@@ -100,7 +114,6 @@ export default class ImageTagProcessor {
 
     public async process(action: string): Promise<void> {
         let value = this.getValue();
-        const basePath = this.adapter.getBasePath();
         const promises: Promise<Image>[] = [];
         // Convert mermaid code blocks to images if enabled
         let mermaidUrls = new Set<string>();
@@ -111,94 +124,184 @@ export default class ImageTagProcessor {
             mermaidUrls = result.generatedUrls;
         }
 
-        const images = this.getImageLists(value, mermaidUrls);
+        const allImages = this.getImageLists(value, mermaidUrls);
+        // Filter out images that the user has chosen to skip (regex / size).
+        const images: Image[] = [];
+        for (const image of allImages) {
+            // Resolve per-folder overrides so the skip rules can use the
+            // effective path / config for this file. Per-folder store / CDN
+            // switching requires a different uploader; for now the skip /
+            // platform path are honoured, and the rest of the pipeline uses
+            // the active global uploader.
+            const config = resolveConfigFor(
+                image.path,
+                this.settings.perFolderRules,
+                this.settings.imageStore,
+                this.settings.platformFormat,
+            );
+            const decision = SkipRules.shouldSkip(
+                {
+                    url: image.isWebImage ? image.path : undefined,
+                    localPath: image.isWebImage ? undefined : image.path,
+                    sizeBytes: image.sizeBytes,
+                },
+                this.settings.skipRules,
+            );
+            if (decision.shouldSkip) {
+                // Mark as skipped in the progress modal + log
+                if (this.progressModal) {
+                    this.progressModal.updateProgress(image.name, true);
+                }
+                UploadLog.getInstance().add({
+                    timestamp: Date.now(),
+                    fileName: image.name,
+                    status: "skipped",
+                    durationMs: 0,
+                    providerId: this.activeProviderId(),
+                });
+                continue;
+            }
+            // Stash the resolved config on the image so the per-image
+            // platformFormat post-processor can pick it up later.
+            (image as Image & { _platformFormat?: string })._platformFormat = config.platformFormat;
+            images.push(image);
+        }
+
         const uploader = this.imageUploader;
-        
+        const uploadLog = UploadLog.getInstance();
+
         // Initialize progress display
         if (this.useModal && images.length > 0) {
             this.progressModal = new UploadProgressModal(this.app, this.translate);
             this.progressModal.open();
             this.progressModal.initialize(images);
         }
-        
+
+        // Bounded concurrency — defaults to 3, can be raised to 16 in settings.
+        const pool = new UploadPool(this.settings.uploadConcurrency);
+
         for (const image of images) {
             // Handle web images differently
             if (image.isWebImage) {
-                promises.push((async (): Promise<Image> => {
+                promises.push(pool.run(async (): Promise<Image> => {
+                    const started = Date.now();
                     try {
                         // Download the web image
                         const downloadResult = await WebImageDownloader.download(image.path);
-                        const file = new File([downloadResult.buffer], downloadResult.filename);
-                        
-                        // Upload to cloud storage - use just the filename as fullPath for web images
-                        // since they don't have a real file system path
-                        const imgUrl = await uploader.upload(file, downloadResult.filename);
+                        const originalFile = new File([downloadResult.buffer], downloadResult.filename);
+
+                        // Run preprocessing pipeline (compression / exif / rename)
+                        const {file, displayName} = await this.preprocessFile(
+                            originalFile,
+                            image.name,
+                            downloadResult.buffer.byteLength,
+                        );
+
+                        const imgUrl = await uploader.upload(file, file.name);
                         image.url = imgUrl;
-                        
-                        // Update progress on successful upload
+                        image.displayName = displayName;
                         if (this.progressModal) {
                             this.progressModal.updateProgress(image.name, true);
                         }
+                        uploadLog.add({
+                            timestamp: started,
+                            fileName: displayName,
+                            url: imgUrl,
+                            status: "success",
+                            durationMs: Date.now() - started,
+                            providerId: this.activeProviderId(),
+                        });
                         return image;
                     } catch (e) {
-                        // Update progress on failed upload
                         if (this.progressModal) {
                             this.progressModal.updateProgress(image.name, false);
                         }
                         const errorMessageText = this.translate.t("notice.webImageUploadFailed").replace("{path}", image.path).replace("{error}", errorMessage(e));
                         new Notice(errorMessageText, 10000);
                         console.error('Web image upload error:', e);
+                        uploadLog.add({
+                            timestamp: started,
+                            fileName: image.name,
+                            error: errorMessage(e),
+                            status: "failed",
+                            durationMs: Date.now() - started,
+                            providerId: this.activeProviderId(),
+                        });
                         throw new Error(errorMessageText);
                     }
-                })());
+                }));
                 continue;
             }
-            
+
             // Handle local images
             if (this.app.vault.getAbstractFileByPath(normalizePath(image.path)) == null) {
                 new Notice(this.translate.t("notice.cannotLocate").replace("{name}", image.name).replace("{path}", image.path), 10000);
                 console.warn(`${normalizePath(image.path)} not exist`);
-                // Update the progress modal with the failure
                 if (this.progressModal) {
                     this.progressModal.updateProgress(image.name, false);
                 }
-                continue; // Skip to the next image
+                continue;
             }
-            
-            try {
-                const buf = await this.adapter.readBinary(image.path);
-                promises.push(new Promise<Image>((resolve, reject) => {
-                    uploader.upload(new File([buf], image.name), basePath + '/' + image.path)
-                        .then(imgUrl => {
-                            image.url = imgUrl;
-                            // Update progress on successful upload
-                            if (this.progressModal) {
-                                this.progressModal.updateProgress(image.name, true);
-                            }
-                            resolve(image);
-                        })
-                        .catch(e => {
-                            // Also update progress on failed upload
-                            if (this.progressModal) {
-                                this.progressModal.updateProgress(image.name, false);
-                            }
-                            const errorMessageText = this.translate.t("notice.uploadFailed").replace("{path}", image.path).replace("{error}", errorMessage(e));
-                            new Notice(errorMessageText, 10000);
-                            reject(new Error(errorMessageText));
-                        });
-                }));
-            } catch (error) {
-                console.error(`Failed to read file: ${image.path}`, error);
-                new Notice(this.translate.t("notice.failedToReadFile").replace("{path}", image.path), 5000);
-            }
+
+            const localPath = image.path;
+            promises.push(pool.run(async (): Promise<Image> => {
+                const started = Date.now();
+                try {
+                    const buf = await this.adapter.readBinary(localPath);
+                    const originalFile = new File([buf], image.name);
+                    const {file, displayName} = await this.preprocessFile(
+                        originalFile,
+                        image.name,
+                        buf.byteLength,
+                    );
+
+                    const imgUrl = await uploader.upload(file, file.name);
+                    image.url = imgUrl;
+                    image.displayName = displayName;
+                    // Track the rewritten source so the markdown replacement
+                    // matches the actual reference text (handles rename
+                    // rules that change the basename).
+                    if (displayName !== image.name) {
+                        image.rewrittenSource = image.source.replace(
+                            new RegExp(this.escapeRegExp(image.name), "g"),
+                            displayName,
+                        );
+                    }
+                    if (this.progressModal) {
+                        this.progressModal.updateProgress(image.name, true);
+                    }
+                    uploadLog.add({
+                        timestamp: started,
+                        fileName: displayName,
+                        url: imgUrl,
+                        status: "success",
+                        durationMs: Date.now() - started,
+                        providerId: this.activeProviderId(),
+                    });
+                    return image;
+                } catch (e) {
+                    if (this.progressModal) {
+                        this.progressModal.updateProgress(image.name, false);
+                    }
+                    const errorMessageText = this.translate.t("notice.uploadFailed").replace("{path}", localPath).replace("{error}", errorMessage(e));
+                    new Notice(errorMessageText, 10000);
+                    uploadLog.add({
+                        timestamp: started,
+                        fileName: image.name,
+                        error: errorMessage(e),
+                        status: "failed",
+                        durationMs: Date.now() - started,
+                        providerId: this.activeProviderId(),
+                    });
+                    throw new Error(errorMessageText);
+                }
+            }));
         }
 
         if (promises.length === 0) {
             if (this.progressModal) {
                 this.progressModal.close();
             }
-            // Still proceed to output — mermaid conversion may have transformed the value
-            // even though no local/web images need uploading
         }
 
         let successfulImages: Image[] = [];
@@ -209,12 +312,12 @@ export default class ImageTagProcessor {
             })));
             successfulImages = results.filter(img => img !== null) as Image[];
 
-            let altText;
             for (const image of successfulImages) {
-                altText = this.settings.imageAltText ?
-                    path.parse(image.name)?.name?.replaceAll("-", " ")?.replaceAll("_", " ") :
+                const altText = this.settings.imageAltText ?
+                    path.parse(image.displayName || image.name)?.name?.replaceAll("-", " ")?.replaceAll("_", " ") :
                     '';
-                value = value.replaceAll(image.source, `![${altText}](${image.url})`);
+                const replacementSource = image.rewrittenSource || image.source;
+                value = value.replaceAll(replacementSource, `![${altText}](${image.url})`);
             }
         }
 
@@ -224,9 +327,10 @@ export default class ImageTagProcessor {
                 let altText;
                 for (const image of successfulImages) {
                     altText = this.settings.imageAltText ?
-                        path.parse(image.name)?.name?.replaceAll("-", " ")?.replaceAll("_", " ") :
+                        path.parse(image.displayName || image.name)?.name?.replaceAll("-", " ")?.replaceAll("_", " ") :
                         '';
-                    docValue = docValue.replaceAll(image.source, `![${altText}](${image.url})`);
+                    const replacementSource = image.rewrittenSource || image.source;
+                    docValue = docValue.replaceAll(replacementSource, `![${altText}](${image.url})`);
                 }
                 this.getEditor()?.setValue(docValue);
             }
@@ -237,9 +341,10 @@ export default class ImageTagProcessor {
                 let altText;
                 for (const image of webImages) {
                     altText = this.settings.imageAltText ?
-                        path.parse(image.name)?.name?.replaceAll("-", " ")?.replaceAll("_", " ") :
+                        path.parse(image.displayName || image.name)?.name?.replaceAll("-", " ")?.replaceAll("_", " ") :
                         '';
-                    docValue = docValue.replaceAll(image.source, `![${altText}](${image.url})`);
+                    const replacementSource = image.rewrittenSource || image.source;
+                    docValue = docValue.replaceAll(replacementSource, `![${altText}](${image.url})`);
                 }
                 this.getEditor()?.setValue(docValue);
             }
@@ -247,6 +352,16 @@ export default class ImageTagProcessor {
 
         if (this.settings.ignoreProperties) {
             value = value.replace(PROPERTIES_REGEX, '');
+        }
+
+        // Apply platform-format post-processor (微信公众号 / 知乎 / 掘金 / default).
+        // If at least one image had a per-folder override that differs from
+        // the global platformFormat, we still apply the global setting
+        // (the per-folder override's imageStore / CDN are not swapped per
+        // file in this build — only the post-processing platformFormat is
+        // currently threaded through).
+        if (this.settings.platformFormat && this.settings.platformFormat !== "default") {
+            value = applyPlatform(value, this.settings.platformFormat);
         }
 
         switch (action) {
@@ -257,6 +372,81 @@ export default class ImageTagProcessor {
             default:
                 throw new Error("invalid action!");
         }
+    }
+
+    /**
+     * Pre-upload pipeline: compression → exif-strip → rename.
+     * Returns the File to hand to the uploader plus the display name to use
+     * in the markdown replacement.
+     */
+    private async preprocessFile(
+        file: File,
+        originalName: string,
+        sizeBytes: number,
+    ): Promise<{ file: File; displayName: string }> {
+        let working = file;
+        let displayName = originalName;
+        const ext = (originalName.split(".").pop() || "").toLowerCase();
+        const isImage = working.type.startsWith("image/") || /\.(png|jpg|jpeg|gif|webp|bmp|avif|apng|tiff|tif|ico|heic|heif)$/i.test(originalName);
+
+        // 1. Compression (images only)
+        if (isImage && this.settings.compression.enabled) {
+            try {
+                const out = await ImageCompressor.compress(working, this.settings.compression);
+                working = new File([out.blob], out.name, { type: out.type });
+                displayName = out.name;
+            } catch (e) {
+                console.warn("preprocessFile: compression failed, using original", e);
+            }
+        }
+
+        // 2. Exif strip (images only) — also runs after compression so a
+        //    fresh re-encode is attempted even when compression is off.
+        if (isImage && this.settings.exifStrip.enabled) {
+            try {
+                const out = await ExifStripper.strip(working, this.settings.exifStrip);
+                working = new File([out.blob], out.name, { type: out.type });
+            } catch (e) {
+                console.warn("preprocessFile: exif strip failed, using previous", e);
+            }
+        }
+
+        // 3. Rename rules — applies to all file types. Operates on the
+        //    *basename only*; the uploader's own path template is used for
+        //    the directory portion.
+        if (this.settings.renameRules.enabled && this.settings.renameRules.template && this.settings.renameRules.template.trim()) {
+            try {
+                const newName = RenameRules.apply(
+                    this.settings.renameRules.template,
+                    displayName,
+                    this.settings.renameRules,
+                );
+                if (newName && newName !== displayName) {
+                    working = new File([working], newName, { type: working.type });
+                    displayName = newName;
+                }
+            } catch (e) {
+                console.warn("preprocessFile: rename rules failed, using previous name", e);
+            }
+        }
+
+        // Suppress unused var linting when sizeBytes isn't read directly here
+        void sizeBytes;
+        void ext;
+        return {file: working, displayName};
+    }
+
+    /** Returns the active provider id, used for upload-log entries. */
+    private activeProviderId(): string {
+        try {
+            return ImageStore.normalizeId(this.settings.imageStore);
+        } catch {
+            return "unknown";
+        }
+    }
+
+    private escapeRegExp(s: string): string {
+        return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     }
 
     private getImageLists(value: string, mermaidUrls: Set<string> = new Set()): Image[] {
@@ -282,9 +472,11 @@ export default class ImageTagProcessor {
                     continue;
                 }
                 
-                // Skip non-image local files (e.g., .pdf, .txt) to prevent invalid uploads
+                // Skip non-uploadable local files (e.g., .txt, .md) to prevent
+                // invalid uploads. Allow common image + video + pdf extensions
+                // since the new upload pipeline supports those too.
                 const localPath = imageUrl.split('?')[0];
-                if (!/\.(png|jpg|jpeg|gif|svg|webp|excalidraw)$/i.test(localPath)) {
+                if (!/\.(png|jpg|jpeg|gif|svg|webp|excalidraw|mp4|mov|webm|pdf|avif|apng|bmp|tiff|tif|ico|heic|heif)$/i.test(localPath)) {
                     continue;
                 }
 
@@ -298,17 +490,30 @@ export default class ImageTagProcessor {
         return images;
     }
 
-    private processMatched(path: string, src: string, images: Image[]){    
+    private processMatched(path: string, src: string, images: Image[]){
         try {
             const {resolvedPath, name} = this.resolveImagePath(path);
-            // check the item with same resolvedPath 
+            // check the item with same resolvedPath
             const existingImage = images.find(image => image.path === resolvedPath);
             if (!existingImage) {
+                // Pre-fetch the file size so skip-rules and the upload log
+                // can use it without an extra read after the fact.
+                let sizeBytes: number | undefined;
+                try {
+                    const af = this.app.vault.getAbstractFileByPath(resolvedPath);
+                    if (af && "stat" in af) {
+                        sizeBytes = (af as { stat: { size: number } }).stat.size;
+                    }
+                } catch {
+                    sizeBytes = undefined;
+                }
                 images.push({
                     name,
+                    displayName: name,
                     path: resolvedPath,
                     source: src,
                     url: '',
+                    sizeBytes,
                 });
             }
         } catch (error) {
@@ -326,12 +531,13 @@ export default class ImageTagProcessor {
             const pathname = urlObj.pathname;
             const segments = pathname.split('/').filter(s => s.length > 0);
             const name = segments.length > 0 ? segments[segments.length - 1] : `web-image-${Date.now()}`;
-            
+
             // Check if already in list
             const existingImage = images.find(image => image.path === url);
             if (!existingImage) {
                 images.push({
                     name: decodeURIComponent(name),
+                    displayName: decodeURIComponent(name),
                     path: url, // Store the URL as path for web images
                     source: src,
                     url: '',
