@@ -259,20 +259,21 @@ const zh: typeof en = {
                 },
             },
             github: {
-                repository: {
-                    name: "仓库名称",
-                    desc: "用于存储图片的 GitHub 仓库名称（格式：owner/repo）。",
-                    placeholder: "输入仓库名称（例如：username/repo）",
-                },
-                branch: {
-                    name: "分支名称",
-                    desc: "存储图片的分支（默认为 'main'）。",
-                    placeholder: "输入分支名称",
-                },
                 token: {
                     name: "个人访问令牌",
                     desc: "在此处生成具有 'repo' 权限的个人访问令牌：",
                     placeholder: "输入你的 GitHub 个人访问令牌",
+                },
+                connected: "已连接",
+                reconnect: "重新连接",
+                createRepo: "创建仓库",
+                creating: "正在创建...",
+                createFailed: "仓库创建失败",
+                tokenRequired: "请先输入 Token",
+                path: {
+                    name: "上传路径",
+                    desc: "图片在仓库中的存储路径（可选）",
+                    placeholder: "默认：images",
                 },
             },
             r2: {

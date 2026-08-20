@@ -80,7 +80,7 @@ export default class ImageStore {
 
     static normalizeId(id: string | undefined | null): string {
         if (!id) {
-            return ImageStore.IMGUR.id;
+            return ImageStore.GITHUB.id;
         }
 
         if (ImageStore.values.some((store) => store.id === id)) {

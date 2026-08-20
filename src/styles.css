@@ -236,3 +236,55 @@
 .iuf-btn-primary:hover {
     opacity: 0.85;
 }
+
+.iuf-btn-secondary {
+    background: var(--background-modifier-border);
+    color: var(--text-normal);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    padding: 6px 16px;
+    font-size: var(--font-ui-small);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.iuf-btn-secondary:hover {
+    background: var(--background-modifier-hover);
+}
+
+.iuf-btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.iuf-github-status {
+    padding: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.iuf-github-connected {
+    color: var(--interactive-success);
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-medium);
+}
+
+.setting-item.iuf-github-token {
+    flex-wrap: wrap;
+}
+
+.setting-item.iuf-github-token .setting-item-info {
+    flex: 0 0 auto;
+    width: 100%;
+    margin-bottom: 4px;
+}
+
+.setting-item.iuf-github-token .setting-item-control {
+    flex: 1 1 100%;
+    width: 100%;
+}
+
+.setting-item.iuf-github-token .setting-item-control input {
+    width: 100%;
+}

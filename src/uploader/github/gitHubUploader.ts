@@ -101,6 +101,36 @@ export default class GitHubUploader implements ImageUploader {
     
     return btoa(binary);
   }
+
+  /**
+   * Create a GitHub repository for storing images, or verify an existing one.
+   * Returns the repository info (owner, repo name, branch).
+   */
+  static async createRepository(token: string): Promise<{ owner: string; repo: string; branch: string }> {
+    const octokit = new Octokit({ auth: token });
+
+    // Get authenticated user
+    const { data: user } = await octokit.users.getAuthenticated();
+    const owner = user.login;
+
+    const repoName = "obsidian-file-upload-images";
+
+    // Check if repo already exists
+    try {
+      await octokit.repos.get({ owner, repo: repoName });
+      // Repo exists, use it as-is
+    } catch {
+      // Repo doesn't exist, create it
+      await octokit.repos.createForAuthenticatedUser({
+        name: repoName,
+        description: "Auto-created by obsidian-file-upload plugin for storing images",
+        private: true,
+        auto_init: true,
+      });
+    }
+
+    return { owner, repo: repoName, branch: "main" };
+  }
 }
 
 export interface GitHubSetting {

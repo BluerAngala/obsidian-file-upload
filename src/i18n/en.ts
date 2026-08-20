@@ -267,20 +267,21 @@ const en = {
             },
             // GitHub
             github: {
-                repository: {
-                    name: "Repository name",
-                    desc: "The name of the GitHub repository to store images (format: owner/repo).",
-                    placeholder: "Enter repository name (e.g., username/repo)",
-                },
-                branch: {
-                    name: "Branch name",
-                    desc: "The branch to store images in (defaults to 'main').",
-                    placeholder: "Enter branch name",
-                },
                 token: {
                     name: "Personal access token",
                     desc: "Generate a personal access token with 'repo' scope at ",
                     placeholder: "Enter your GitHub personal access token",
+                },
+                connected: "Connected",
+                reconnect: "Reconnect",
+                createRepo: "Create Repository",
+                creating: "Creating...",
+                createFailed: "Repository creation failed",
+                tokenRequired: "Please enter a token first",
+                path: {
+                    name: "Upload path",
+                    desc: "Directory path in the repository (optional)",
+                    placeholder: "Default: images",
                 },
             },
             // Cloudflare R2

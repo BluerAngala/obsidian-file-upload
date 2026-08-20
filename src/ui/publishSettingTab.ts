@@ -1,9 +1,10 @@
-import {App, PluginSettingTab, Setting} from "obsidian";
+import {App, Notice, PluginSettingTab, Setting} from "obsidian";
 import ObsidianPublish from "../publish";
 import ImageStore from "../imageStore";
 import {AliYunRegionList} from "../uploader/oss/common";
 import {TencentCloudRegionList} from "../uploader/cos/common";
 import type {Language} from "../i18n/translate";
+import GitHubUploader from "../uploader/github/gitHubUploader";
 
 type TabId = "welcome" | "general" | "upload" | "mermaid" | "imageStore";
 
@@ -670,34 +671,69 @@ export default class PublishSettingTab extends PluginSettingTab {
     }
 
     private drawGitHubSetting(parentEL: HTMLDivElement) {
-        new Setting(parentEL)
-            .setName(this.t("settings.imageStore.github.repository.name"))
-            .setDesc(this.t("settings.imageStore.github.repository.desc"))
+        const t: (key: string) => string = (key: string) => this.t(key);
+        const settings = this.plugin.settings.githubSetting;
+
+        // ── Token (full width) ──
+        const tokenSetting = new Setting(parentEL)
+            .setName(t("settings.imageStore.github.token.name"))
+            .setDesc(PublishSettingTab.githubTokenDescription(t("settings.imageStore.github.token.desc")))
+            .setClass("iuf-github-token")
             .addText(text =>
                 text
-                    .setPlaceholder(this.t("settings.imageStore.github.repository.placeholder"))
-                    .setValue(this.plugin.settings.githubSetting.repositoryName)
-                    .onChange(value => this.plugin.settings.githubSetting.repositoryName = value)
+                    .setPlaceholder(t("settings.imageStore.github.token.placeholder"))
+                    .setValue(settings.token)
+                    .onChange(value => {
+                        settings.token = value;
+                        this.plugin.settings.githubSetting = settings;
+                    })
             );
 
-        new Setting(parentEL)
-            .setName(this.t("settings.imageStore.github.branch.name"))
-            .setDesc(this.t("settings.imageStore.github.branch.desc"))
-            .addText(text =>
-                text
-                    .setPlaceholder(this.t("settings.imageStore.github.branch.placeholder"))
-                    .setValue(this.plugin.settings.githubSetting.branchName)
-                    .onChange(value => this.plugin.settings.githubSetting.branchName = value)
-            );
+        // Auto-create repo when token input loses focus (if no repo yet)
+        const tokenInput = tokenSetting.controlEl.querySelector("input");
+        if (tokenInput) {
+            tokenInput.addEventListener("blur", () => {
+                if (settings.token && !settings.repositoryName) {
+                    GitHubUploader.createRepository(settings.token).then(repo => {
+                        settings.repositoryName = `${repo.owner}/${repo.repo}`;
+                        settings.branchName = repo.branch;
+                        this.plugin.settings.githubSetting = settings;
+                        void this.plugin.saveSettings();
+                        new Notice(`✓ ${t("settings.imageStore.github.connected")}: ${settings.repositoryName}`);
+                        updateStatus();
+                    }).catch((err: unknown) => {
+                        const msg = err instanceof Error ? err.message : JSON.stringify(err);
+                        new Notice(`✗ ${t("settings.imageStore.github.createFailed")}: ${msg}`);
+                    });
+                }
+            });
+        }
 
+        // ── Status ──
+        const statusDiv = parentEL.createDiv({cls: "iuf-github-status"});
+        const updateStatus = () => {
+            statusDiv.empty();
+            if (settings.repositoryName) {
+                statusDiv.createEl("span", {
+                    text: `✓ ${t("settings.imageStore.github.connected")}: ${settings.repositoryName}`,
+                    cls: "iuf-github-connected",
+                });
+            }
+        };
+        updateStatus();
+
+        // ── Path (optional) ──
         new Setting(parentEL)
-            .setName(this.t("settings.imageStore.github.token.name"))
-            .setDesc(PublishSettingTab.githubTokenDescription(this.t("settings.imageStore.github.token.desc")))
+            .setName(t("settings.imageStore.github.path.name"))
+            .setDesc(t("settings.imageStore.github.path.desc"))
             .addText(text =>
                 text
-                    .setPlaceholder(this.t("settings.imageStore.github.token.placeholder"))
-                    .setValue(this.plugin.settings.githubSetting.token)
-                    .onChange(value => this.plugin.settings.githubSetting.token = value)
+                    .setPlaceholder(t("settings.imageStore.github.path.placeholder"))
+                    .setValue(settings.path)
+                    .onChange(value => {
+                        settings.path = value;
+                        this.plugin.settings.githubSetting = settings;
+                    })
             );
     }
 

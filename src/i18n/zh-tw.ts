@@ -259,20 +259,21 @@ const zhTw: typeof en = {
                 },
             },
             github: {
-                repository: {
-                    name: "倉庫名稱",
-                    desc: "用於儲存圖片的 GitHub 倉庫名稱（格式：owner/repo）。",
-                    placeholder: "輸入倉庫名稱（例如：username/repo）",
-                },
-                branch: {
-                    name: "分支名稱",
-                    desc: "儲存圖片的分支（預設為 'main'）。",
-                    placeholder: "輸入分支名稱",
-                },
                 token: {
                     name: "個人存取權杖",
                     desc: "在此處生成具有 'repo' 權限的個人存取權杖：",
                     placeholder: "輸入你的 GitHub 個人存取權杖",
+                },
+                connected: "已連線",
+                reconnect: "重新連線",
+                createRepo: "建立倉庫",
+                creating: "正在建立...",
+                createFailed: "倉庫建立失敗",
+                tokenRequired: "請先輸入 Token",
+                path: {
+                    name: "上傳路徑",
+                    desc: "圖片在倉庫中的儲存路徑（可選）",
+                    placeholder: "預設：images",
                 },
             },
             r2: {

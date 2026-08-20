@@ -57,7 +57,7 @@ const DEFAULT_SETTINGS: PublishSettings = {
     imageAltText: true,
     replaceOriginalDoc: false,
     ignoreProperties: true,
-    imageStore: ImageStore.IMGUR.id,
+    imageStore: ImageStore.GITHUB.id,
     showProgressModal: true,
     uploadWebImages: false,
     convertMermaid: false,
