@@ -128,16 +128,16 @@
     border-bottom: 2px solid var(--background-modifier-border);
     margin: 0 0 12px 0;
     background: var(--background-primary);
-    padding: 0;
+    padding: 12px 0 0;
     position: sticky;
     top: 0;
     z-index: 10;
 }
 
 .iuf-settings .iuf-tab-btn {
-    padding: 8px 16px;
+    padding: 8px 18px;
     cursor: pointer;
-    font-size: var(--font-ui-small);
+    font-size: var(--font-ui-medium);
     color: var(--text-muted);
     border-bottom: 2px solid transparent;
     margin-bottom: -2px;
@@ -159,66 +159,87 @@
 
 /* ── Welcome page ──────────────────────────────────────────────────────── */
 
+.iuf-welcome {
+    max-width: 560px;
+    margin: 24px auto 40px;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
 .iuf-welcome-hero {
     text-align: center;
-    padding: 16px 0 12px;
+    padding: 24px 0 8px;
 }
 
 .iuf-welcome-hero .setting-item {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
     border: none;
-}
-
-.iuf-welcome-hero .setting-item .setting-item-name {
-    text-align: center;
-}
-
-.iuf-welcome-hero h2 {
-    margin: 0 0 8px;
-    font-size: 1.4em;
-}
-
-.iuf-welcome-hero p {
-    color: var(--text-muted);
+    padding: 0;
     margin: 0;
-    font-size: var(--font-ui-small);
 }
 
-.iuf-welcome-setup {
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-.iuf-welcome-setup .setting-item:first-child {
-    display: flex;
-    justify-content: center;
-    border: none;
-}
-
-.iuf-welcome-setup .setting-item:first-child .setting-item-name {
+.iuf-welcome-hero .iuf-welcome-title {
+    margin: 0;
+    font-size: 2em;
+    font-weight: var(--font-semibold);
+    color: var(--text-normal);
     text-align: center;
+}
+
+.iuf-welcome-subtitle {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+    line-height: 1.5;
+}
+
+.iuf-welcome-card {
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.iuf-welcome-card .iuf-welcome-row {
+    border: none;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    margin: 0;
+}
+
+.iuf-welcome-card .iuf-welcome-row:last-child {
+    border-bottom: none;
+}
+
+.iuf-welcome-card .iuf-welcome-row .setting-item-name {
+    font-weight: var(--font-medium);
+}
+
+.iuf-welcome-tip {
+    text-align: center;
+    padding: 0 8px;
+}
+
+.iuf-welcome-tip p {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-faint);
+    margin: 0;
+    line-height: 1.5;
+    white-space: pre-line;
 }
 
 .iuf-welcome-actions {
     text-align: center;
-    padding: 12px 0 16px;
-    border-top: 1px solid var(--background-modifier-border);
+    padding: 4px 0 0;
 }
 
-.iuf-welcome-hint {
-    text-align: center;
-    padding: 8px 0 4px;
-}
-
-.iuf-welcome-hint p {
-    font-size: var(--font-ui-smaller);
-    color: var(--text-faint);
-    margin: 0;
-}
-
-.iuf-welcome-provider {
-    margin-top: 8px;
+.iuf-welcome-cta {
+    min-width: 180px;
+    padding: 10px 32px;
 }
 
 .iuf-btn-primary {
@@ -270,21 +291,92 @@
     font-weight: var(--font-medium);
 }
 
+.iuf-github-link {
+    color: var(--interactive-success);
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-medium);
+    text-decoration: none;
+    word-break: break-all;
+}
+
+.iuf-github-link:hover {
+    text-decoration: underline;
+}
+
 .setting-item.iuf-github-token {
     flex-wrap: wrap;
 }
 
 .setting-item.iuf-github-token .setting-item-info {
-    flex: 0 0 auto;
-    width: 100%;
+    flex: 0 0 100%;
     margin-bottom: 4px;
 }
 
 .setting-item.iuf-github-token .setting-item-control {
     flex: 1 1 100%;
     width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
 }
 
-.setting-item.iuf-github-token .setting-item-control input {
+.setting-item.iuf-github-token .iuf-token-input-wrap {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.setting-item.iuf-github-token .iuf-token-input {
     width: 100%;
+}
+
+.setting-item.iuf-github-token .iuf-token-toggle {
+    flex: 0 0 auto;
+    background: var(--background-modifier-border);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    padding: 4px 10px;
+    cursor: pointer;
+    color: var(--text-normal);
+    font-size: var(--font-ui-small);
+    line-height: 1;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.setting-item.iuf-github-token .iuf-token-toggle:hover {
+    background: var(--background-modifier-hover);
+    border-color: var(--background-modifier-border-hover);
+}
+
+/* GitHub repository row: matches the token row layout.
+   Wrap forces the info area (name + description) and the control area (input)
+   to stack on separate lines so the description never wraps inside the row. */
+.setting-item.iuf-github-repo {
+    flex-wrap: wrap;
+}
+
+.setting-item.iuf-github-repo .setting-item-info {
+    flex: 0 0 100%;
+    margin-bottom: 4px;
+}
+
+.setting-item.iuf-github-repo .setting-item-control {
+    flex: 1 1 100%;
+    width: 100%;
+    text-align: left;
+}
+
+.setting-item.iuf-github-repo .setting-item-control input {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+/* GitHub branch row: shrink description but keep the input at its natural compact width */
+.setting-item.iuf-github-branch .setting-item-description {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-faint);
+    line-height: 1.4;
 }

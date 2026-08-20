@@ -18,7 +18,7 @@ const en = {
             subtitle: "Upload local images and files to your cloud storage with one click. Supports 10+ providers.",
             quickSetup: "Quick Setup",
             getStarted: "Get Started",
-            usageHint: "After setup, use the ribbon icon or Cmd+P → 'Publish page' to upload. Right-click any file to upload individually.",
+            usageHint: "After setup, use the ribbon icon or Cmd+P → 'Publish page' to upload.\nRight-click any file to upload individually.",
         },
         general: {
             heading: "General",
@@ -271,6 +271,16 @@ const en = {
                     name: "Personal access token",
                     desc: "Generate a personal access token with 'repo' scope at ",
                     placeholder: "Enter your GitHub personal access token",
+                },
+                repository: {
+                    name: "Repository",
+                    desc: "Leave empty to auto-create the default repository.",
+                    placeholder: "obsidian-file-upload-images",
+                },
+                branch: {
+                    name: "Branch",
+                    desc: "Branch to upload to. Leave empty to use the repository's default branch.",
+                    placeholder: "main",
                 },
                 connected: "Connected",
                 reconnect: "Reconnect",

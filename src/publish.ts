@@ -113,6 +113,7 @@ const DEFAULT_SETTINGS: PublishSettings = {
         path: ""
     },
     githubSetting: {
+        githubOwner: "",
         repositoryName: "",
         branchName: "main",
         token: "",

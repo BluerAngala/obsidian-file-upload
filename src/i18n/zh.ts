@@ -18,7 +18,7 @@ const zh: typeof en = {
             subtitle: "一键将本地图片和文件上传到云端存储，支持 10+ 种存储服务。",
             quickSetup: "快速设置",
             getStarted: "开始使用",
-            usageHint: "设置完成后，使用左侧菜单栏图标或命令面板（Cmd+P → 发布页面）上传。右键点击文件可单独上传。",
+            usageHint: "设置完成后，使用左侧菜单栏图标或命令面板（Cmd+P → 发布页面）上传。\n右键点击文件可单独上传。",
         },
         general: {
             heading: "通用",
@@ -263,6 +263,16 @@ const zh: typeof en = {
                     name: "个人访问令牌",
                     desc: "在此处生成具有 'repo' 权限的个人访问令牌：",
                     placeholder: "输入你的 GitHub 个人访问令牌",
+                },
+                repository: {
+                    name: "仓库名称",
+                    desc: "留空则自动创建默认仓库。",
+                    placeholder: "obsidian-file-upload-images",
+                },
+                branch: {
+                    name: "分支名称",
+                    desc: "上传到哪个分支。留空则使用仓库的默认分支。",
+                    placeholder: "main",
                 },
                 connected: "已连接",
                 reconnect: "重新连接",

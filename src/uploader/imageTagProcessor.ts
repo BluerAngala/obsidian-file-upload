@@ -24,9 +24,9 @@ export function isAlreadyHosted(url: string, settings: PublishSettings): boolean
             case ImageStore.GYAZO.id:
                 return hostname.includes('gyazo.com') || hostname.includes('i.gyazo.com') || hostname.includes('thumb.gyazo.com');
             case ImageStore.GITHUB.id:
-                if (settings.githubSetting?.repositoryName) {
-                    return url.includes('github.com') &&
-                           url.includes(settings.githubSetting.repositoryName);
+                if (settings.githubSetting?.githubOwner && settings.githubSetting?.repositoryName) {
+                    const path = `/${settings.githubSetting.githubOwner}/${settings.githubSetting.repositoryName}/`;
+                    return url.includes('github.com') && url.includes(path);
                 }
                 return hostname.includes('github.com') || hostname.includes('githubusercontent.com');
             case ImageStore.ALIYUN_OSS.id:

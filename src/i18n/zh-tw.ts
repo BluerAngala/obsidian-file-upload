@@ -18,7 +18,7 @@ const zhTw: typeof en = {
             subtitle: "一鍵將本地圖片和檔案上傳到雲端儲存，支援 10+ 種儲存服務。",
             quickSetup: "快速設定",
             getStarted: "開始使用",
-            usageHint: "設定完成後，使用左側選單欄圖示或命令面板（Cmd+P → 發佈頁面）上傳。右鍵點擊檔案可單獨上傳。",
+            usageHint: "設定完成後，使用左側選單欄圖示或命令面板（Cmd+P → 發佈頁面）上傳。\n右鍵點擊檔案可單獨上傳。",
         },
         general: {
             heading: "通用",
@@ -263,6 +263,16 @@ const zhTw: typeof en = {
                     name: "個人存取權杖",
                     desc: "在此處生成具有 'repo' 權限的個人存取權杖：",
                     placeholder: "輸入你的 GitHub 個人存取權杖",
+                },
+                repository: {
+                    name: "倉庫名稱",
+                    desc: "留空則自動建立預設倉庫。",
+                    placeholder: "obsidian-file-upload-images",
+                },
+                branch: {
+                    name: "分支名稱",
+                    desc: "上傳到哪個分支。留空則使用倉庫的預設分支。",
+                    placeholder: "main",
                 },
                 connected: "已連線",
                 reconnect: "重新連線",

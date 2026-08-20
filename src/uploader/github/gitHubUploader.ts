@@ -10,14 +10,14 @@ export default class GitHubUploader implements ImageUploader {
   private uploadQueue: Promise<void> = Promise.resolve();
 
   constructor(setting: GitHubSetting) {
-    this.octokit = new Octokit({ 
+    this.octokit = new Octokit({
       auth: setting.token
     });
-    
-    // Parse owner and repo from repository name (format: owner/repo)
-    const [owner, repo] = setting.repositoryName.split('/');
-    this.owner = owner;
-    this.repo = repo;
+
+    // Owner and repo are stored as separate fields. Owner is auto-fetched
+    // from the token; the user only edits the repository name.
+    this.owner = setting.githubOwner;
+    this.repo = setting.repositoryName;
     this.branch = setting.branchName || 'main';
     this.path = setting.path;
   }
@@ -103,15 +103,22 @@ export default class GitHubUploader implements ImageUploader {
   }
 
   /**
+   * Fetch the GitHub username (owner) for the given token. Independent of
+   * repository creation — call this whenever you just need the owner.
+   */
+  static async fetchOwner(token: string): Promise<string> {
+    const octokit = new Octokit({ auth: token });
+    const { data: user } = await octokit.users.getAuthenticated();
+    return user.login;
+  }
+
+  /**
    * Create a GitHub repository for storing images, or verify an existing one.
    * Returns the repository info (owner, repo name, branch).
    */
   static async createRepository(token: string): Promise<{ owner: string; repo: string; branch: string }> {
     const octokit = new Octokit({ auth: token });
-
-    // Get authenticated user
-    const { data: user } = await octokit.users.getAuthenticated();
-    const owner = user.login;
+    const owner = await GitHubUploader.fetchOwner(token);
 
     const repoName = "obsidian-file-upload-images";
 
@@ -134,7 +141,8 @@ export default class GitHubUploader implements ImageUploader {
 }
 
 export interface GitHubSetting {
-  repositoryName: string; // Format: owner/repo
+  githubOwner: string;    // Auto-fetched from the token (GitHub username)
+  repositoryName: string; // The repository name only (no owner prefix)
   branchName: string;
   token: string;
   path: string;

@@ -7,7 +7,7 @@ const makeSettings = (overrides: any) =>
   ({
     imageStore: ImageStore.IMGUR.id,
     gyazoSetting: { desc: "", accessToken: "", accessPolicy: "anyone" },
-    githubSetting: { repositoryName: "" },
+    githubSetting: { githubOwner: "", repositoryName: "" },
     ossSetting: { customDomainName: "" },
     awsS3Setting: { customDomainName: "" },
     cosSetting: { customDomainName: "" },
@@ -33,22 +33,32 @@ describe("isAlreadyHosted", () => {
     expect(isAlreadyHosted("https://thumb.gyazo.com/thumb/200/abc123.png", canonicalSettings)).toBe(true);
   });
 
-  it("github provider with repository name", () => {
+  it("github provider with owner and repository name", () => {
     const settings = makeSettings({
       imageStore: "github",
-      githubSetting: { repositoryName: "my-images" },
+      githubSetting: { githubOwner: "user", repositoryName: "my-images" },
     });
 
     expect(isAlreadyHosted("https://github.com/user/my-images/blob/main/img.png", settings)).toBe(true);
   });
 
-  it("github provider without repository name", () => {
+  it("github provider does not match a different owner with the same repo name", () => {
     const settings = makeSettings({
       imageStore: "github",
-      githubSetting: { repositoryName: "" },
+      githubSetting: { githubOwner: "alice", repositoryName: "my-images" },
     });
 
-    expect(isAlreadyHosted("https://githubusercontent.com/img.png", settings)).toBe(true);
+    expect(isAlreadyHosted("https://github.com/bob/my-images/blob/main/img.png", settings)).toBe(false);
+  });
+
+  it("github provider without owner falls back to hostname check", () => {
+    const settings = makeSettings({
+      imageStore: "github",
+      githubSetting: { githubOwner: "", repositoryName: "my-images" },
+    });
+
+    expect(isAlreadyHosted("https://github.com/user/my-images/blob/main/img.png", settings)).toBe(true);
+    expect(isAlreadyHosted("https://raw.githubusercontent.com/user/my-images/main/img.png", settings)).toBe(true);
   });
 
   it("oss provider default and custom domain", () => {

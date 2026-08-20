@@ -88,19 +88,26 @@ export default class PublishSettingTab extends PluginSettingTab {
     private renderWelcome(el: HTMLDivElement): void {
         const t: (key: string) => string = (key: string) => this.t(key);
 
-        // Hero
-        const hero = el.createDiv({cls: "iuf-welcome-hero"});
-        new Setting(hero).setName(t("settings.welcome.title")).setHeading();
-        hero.createEl("p", {text: t("settings.welcome.subtitle")});
+        const wrap = el.createDiv({cls: "iuf-welcome"});
 
-        // Quick setup section
-        const setup = el.createDiv({cls: "iuf-welcome-setup"});
-        new Setting(setup).setName(t("settings.welcome.quickSetup")).setHeading();
+        // Hero — title + subtitle
+        const hero = wrap.createDiv({cls: "iuf-welcome-hero"});
+        const titleSetting = new Setting(hero)
+            .setName(t("settings.welcome.title"))
+            .setHeading();
+        titleSetting.nameEl.addClass("iuf-welcome-title");
+        hero.createEl("p", {
+            text: t("settings.welcome.subtitle"),
+            cls: "iuf-welcome-subtitle",
+        });
 
-        // Language selector
-        new Setting(setup)
+        // Core settings card
+        const card = wrap.createDiv({cls: "iuf-welcome-card"});
+
+        new Setting(card)
             .setName(t("settings.language.name"))
             .setDesc(t("settings.language.desc"))
+            .setClass("iuf-welcome-row")
             .addDropdown(dd => {
                 dd.addOption("zh", "中文");
                 dd.addOption("en", "English");
@@ -113,10 +120,10 @@ export default class PublishSettingTab extends PluginSettingTab {
                 });
             });
 
-        // Image store selector
-        new Setting(setup)
+        new Setting(card)
             .setName(t("settings.imageStore.select.name"))
             .setDesc(t("settings.imageStore.select.desc"))
+            .setClass("iuf-welcome-row")
             .addDropdown(dd => {
                 ImageStore.lists.forEach(s => {
                     const providerKey = `settings.imageStore.providers.${s.id}`;
@@ -126,28 +133,23 @@ export default class PublishSettingTab extends PluginSettingTab {
                 dd.onChange(async (v) => {
                     this.plugin.settings.imageStore = v;
                     this.plugin.setupImageUploader();
-                    this.display();
                 });
             });
 
-        // Provider-specific config inline
-        const providerDiv = setup.createDiv({cls: "iuf-welcome-provider"});
-        this.imageStoreDiv = providerDiv;
-        void this.drawImageStoreSettings(providerDiv);
+        // Usage hint
+        const tip = wrap.createDiv({cls: "iuf-welcome-tip"});
+        tip.createEl("p", {text: t("settings.welcome.usageHint")});
 
-        // ── Fixed footer ──
-        const hint = el.createDiv({cls: "iuf-welcome-hint"});
-        hint.createEl("p", {text: t("settings.welcome.usageHint")});
-
-        const btnRow = el.createDiv({cls: "iuf-welcome-actions"});
-        const btn = btnRow.createEl("button", {
+        // Single primary action — go straight to the image-store tab to finish setup
+        const actions = wrap.createDiv({cls: "iuf-welcome-actions"});
+        const btn = actions.createEl("button", {
             text: t("settings.welcome.getStarted"),
-            cls: "iuf-btn-primary",
+            cls: "iuf-btn-primary iuf-welcome-cta",
         });
         btn.addEventListener("click", () => {
             this.plugin.settings.installedVersion = this.plugin.manifest?.version || "1.0.0";
             void this.plugin.saveSettings();
-            this.activeTab = "general";
+            this.activeTab = "imageStore";
             this.display();
         });
     }
@@ -674,52 +676,135 @@ export default class PublishSettingTab extends PluginSettingTab {
         const t: (key: string) => string = (key: string) => this.t(key);
         const settings = this.plugin.settings.githubSetting;
 
-        // ── Token (full width) ──
-        const tokenSetting = new Setting(parentEL)
-            .setName(t("settings.imageStore.github.token.name"))
-            .setDesc(PublishSettingTab.githubTokenDescription(t("settings.imageStore.github.token.desc")))
-            .setClass("iuf-github-token")
-            .addText(text =>
-                text
-                    .setPlaceholder(t("settings.imageStore.github.token.placeholder"))
-                    .setValue(settings.token)
-                    .onChange(value => {
-                        settings.token = value;
-                        this.plugin.settings.githubSetting = settings;
-                    })
-            );
-
-        // Auto-create repo when token input loses focus (if no repo yet)
-        const tokenInput = tokenSetting.controlEl.querySelector("input");
-        if (tokenInput) {
-            tokenInput.addEventListener("blur", () => {
-                if (settings.token && !settings.repositoryName) {
-                    GitHubUploader.createRepository(settings.token).then(repo => {
-                        settings.repositoryName = `${repo.owner}/${repo.repo}`;
-                        settings.branchName = repo.branch;
-                        this.plugin.settings.githubSetting = settings;
-                        void this.plugin.saveSettings();
-                        new Notice(`✓ ${t("settings.imageStore.github.connected")}: ${settings.repositoryName}`);
-                        updateStatus();
-                    }).catch((err: unknown) => {
-                        const msg = err instanceof Error ? err.message : JSON.stringify(err);
-                        new Notice(`✗ ${t("settings.imageStore.github.createFailed")}: ${msg}`);
-                    });
-                }
-            });
-        }
-
-        // ── Status ──
+        // ── Status (declared first so onChange handlers can refresh it) ──
         const statusDiv = parentEL.createDiv({cls: "iuf-github-status"});
         const updateStatus = () => {
             statusDiv.empty();
             if (settings.repositoryName) {
+                const ownerSegment = settings.githubOwner || "_";
+                const url = `https://github.com/${ownerSegment}/${settings.repositoryName}`;
                 statusDiv.createEl("span", {
-                    text: `✓ ${t("settings.imageStore.github.connected")}: ${settings.repositoryName}`,
+                    text: `✓ ${t("settings.imageStore.github.connected")}: `,
                     cls: "iuf-github-connected",
                 });
+                const linkText = settings.githubOwner
+                    ? `${settings.githubOwner}/${settings.repositoryName}`
+                    : settings.repositoryName;
+                const link = statusDiv.createEl("a", {
+                    text: linkText,
+                    href: url,
+                    cls: "iuf-github-link",
+                });
+                link.setAttribute("target", "_blank");
+                link.setAttribute("rel", "noopener noreferrer");
             }
         };
+
+        // ── Token (full width, masked, with show/hide toggle).
+        //    Custom layout so the toggle button can sit next to the input
+        //    instead of wrapping to a new line.
+        const tokenItem = parentEL.createDiv({cls: "setting-item iuf-github-token"});
+        const tokenInfo = tokenItem.createDiv({cls: "setting-item-info"});
+        tokenInfo.createDiv({
+            cls: "setting-item-name",
+            text: t("settings.imageStore.github.token.name"),
+        });
+        const tokenDescEl = tokenInfo.createDiv({cls: "setting-item-description"});
+        tokenDescEl.appendChild(
+            PublishSettingTab.githubTokenDescription(t("settings.imageStore.github.token.desc"))
+        );
+
+        const tokenControl = tokenItem.createDiv({cls: "setting-item-control"});
+        const tokenInputWrap = tokenControl.createDiv({cls: "iuf-token-input-wrap"});
+        const tokenInput = tokenInputWrap.createEl("input", {
+            type: "password",
+            cls: "iuf-token-input",
+        });
+        tokenInput.placeholder = t("settings.imageStore.github.token.placeholder");
+        tokenInput.value = settings.token;
+        tokenInput.addEventListener("input", () => {
+            settings.token = tokenInput.value;
+            this.plugin.settings.githubSetting = settings;
+        });
+
+        const toggleBtn = tokenControl.createEl("button", {
+            text: "\u{1F441}", // 👁
+            cls: "iuf-token-toggle",
+            attr: {type: "button", "aria-label": "Toggle token visibility"},
+        });
+        toggleBtn.addEventListener("click", () => {
+            const isPassword = tokenInput.type === "password";
+            tokenInput.type = isPassword ? "text" : "password";
+            toggleBtn.textContent = isPassword ? "\u{1F648}" : "\u{1F441}"; // 🙈 : 👁
+        });
+
+        // On token blur: (1) auto-fetch the GitHub username (owner) so the
+        // status line can show the full owner/repo path; (2) if no repository
+        // is configured yet, auto-create the default one.
+        tokenInput.addEventListener("blur", () => {
+            if (!settings.token) return;
+
+            if (!settings.githubOwner) {
+                GitHubUploader.fetchOwner(settings.token).then(owner => {
+                    settings.githubOwner = owner;
+                    this.plugin.settings.githubSetting = settings;
+                    void this.plugin.saveSettings();
+                    updateStatus();
+                }).catch((err: unknown) => {
+                    const msg = err instanceof Error ? err.message : JSON.stringify(err);
+                    new Notice(`✗ ${t("settings.imageStore.github.createFailed")}: ${msg}`);
+                });
+            }
+
+            if (!settings.repositoryName) {
+                GitHubUploader.createRepository(settings.token).then(repo => {
+                    settings.githubOwner = repo.owner;
+                    settings.repositoryName = repo.repo;
+                    settings.branchName = repo.branch;
+                    this.plugin.settings.githubSetting = settings;
+                    void this.plugin.saveSettings();
+                    this.display();
+                    new Notice(`✓ ${t("settings.imageStore.github.connected")}: ${settings.repositoryName}`);
+                }).catch((err: unknown) => {
+                    const msg = err instanceof Error ? err.message : JSON.stringify(err);
+                    new Notice(`✗ ${t("settings.imageStore.github.createFailed")}: ${msg}`);
+                });
+            }
+        });
+
+        // ── Repository (owner/repo) — user-editable, empty falls back to auto-create.
+        //    Uses the same wrap layout as the token row: name + description sit
+        //    in the info area, input fills the control area on the next line.
+        new Setting(parentEL)
+            .setName(t("settings.imageStore.github.repository.name"))
+            .setDesc(t("settings.imageStore.github.repository.desc"))
+            .setClass("iuf-github-repo")
+            .addText(text =>
+                text
+                    .setPlaceholder(t("settings.imageStore.github.repository.placeholder"))
+                    .setValue(settings.repositoryName)
+                    .onChange(value => {
+                        settings.repositoryName = value.trim();
+                        this.plugin.settings.githubSetting = settings;
+                        updateStatus();
+                    })
+            );
+
+        // ── Branch (optional, defaults to repo's default branch) ──
+        new Setting(parentEL)
+            .setName(t("settings.imageStore.github.branch.name"))
+            .setDesc(t("settings.imageStore.github.branch.desc"))
+            .setClass("iuf-github-branch")
+            .addText(text =>
+                text
+                    .setPlaceholder(t("settings.imageStore.github.branch.placeholder"))
+                    .setValue(settings.branchName)
+                    .onChange(value => {
+                        settings.branchName = value.trim();
+                        this.plugin.settings.githubSetting = settings;
+                    })
+            );
+
         updateStatus();
 
         // ── Path (optional) ──

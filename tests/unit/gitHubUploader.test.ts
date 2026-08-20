@@ -15,7 +15,8 @@ import GitHubUploader from "../../src/uploader/github/gitHubUploader";
 
 function createUploader(): GitHubUploader {
     return new GitHubUploader({
-        repositoryName: "owner/repo",
+        githubOwner: "owner",
+        repositoryName: "repo",
         branchName: "main",
         token: "token",
         path: "",
